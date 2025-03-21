@@ -1,0 +1,6 @@
+ID|Room Name|Move1|Dest1|Move2|Dest2|Move3|Dest3|Move4|Dest4|Move5|Dest5
+1|Entrance|north|2|east|3||||||
+2|Lobby|south|1|east|4||||||
+3|Garden|west|1||||||||
+4|Corridor|west|2|north|5||||||
+5|Library|south|4||||||||
