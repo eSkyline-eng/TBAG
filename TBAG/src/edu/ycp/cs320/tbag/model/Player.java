@@ -1,73 +1,114 @@
 package edu.ycp.cs320.tbag.model;
 
+import java.util.List;
+
 /**
- * Represents the player in the game.
- * The Player has a health value, a score, and a current room location.
+ * Represents the player in the TBAG game.
+ * The player has health, score, a current room, and an inventory for item management.
  */
 public class Player {
     private int health;
     private int score;
     private Room currentRoom;
-    
+    private Inventory inventory;
+
     /**
      * Constructs a new Player with default health and score.
+     * Initializes an empty inventory.
      */
     public Player() {
-        this.health = 100;  // Default starting health
-        this.score = 0;     // Default starting score
+        this.health = 100;
+        this.score = 0;
+        this.inventory = new Inventory(); // If you have capacity logic, you can configure it here
     }
+
+    // -----------------------
+    // Health & Score Methods
+    // -----------------------
     
-    /**
-     * Gets the current health of the player.
-     * 
-     * @return the player's health
-     */
     public int getHealth() {
         return health;
     }
     
-    /**
-     * Sets the player's health.
-     * 
-     * @param health the new health value
-     */
     public void setHealth(int health) {
         this.health = health;
     }
     
-    /**
-     * Gets the current score of the player.
-     * 
-     * @return the player's score
-     */
     public int getScore() {
         return score;
     }
     
-    /**
-     * Adds points to the player's score.
-     * 
-     * @param points the points to add
-     */
     public void addScore(int points) {
-        score += points;
+        this.score += points;
     }
+
+    // -----------------------
+    // Room Methods
+    // -----------------------
     
-    /**
-     * Gets the room in which the player is currently located.
-     * 
-     * @return the current Room
-     */
     public Room getCurrentRoom() {
         return currentRoom;
     }
     
-    /**
-     * Sets the player's current room.
-     * 
-     * @param currentRoom the Room to set as the current location
-     */
     public void setCurrentRoom(Room currentRoom) {
         this.currentRoom = currentRoom;
+    }
+
+    // -----------------------
+    // Inventory Methods
+    // -----------------------
+    
+    /**
+     * Returns the player's Inventory object for direct manipulation.
+     * If you want to enforce capacity or other rules, do so via pickUpItem/dropItem.
+     */
+    public Inventory getInventory() {
+        return inventory;
+    }
+
+    /**
+     * Attempts to add an item to the player's inventory.
+     *
+     * @param item the item to pick up
+     * @return true if the item was successfully added; false if it was rejected (e.g., capacity exceeded)
+     */
+    public boolean pickUpItem(Item item) {
+        return inventory.addItem(item);
+    }
+
+    /**
+     * Attempts to remove an item from the player's inventory.
+     *
+     * @param item the item to drop
+     * @return true if the item was successfully removed; false if the item was not found
+     */
+    public boolean dropItem(Item item) {
+        return inventory.removeItem(item);
+    }
+
+    /**
+     * Returns a string representation of the player's current inventory.
+     * Example:
+     *   "You are carrying:
+     *    - Fast Food Uniform
+     *    - Resume"
+     *
+     * If the inventory is empty, returns "Your inventory is empty."
+     */
+    public String getInventoryString() {
+        List<Item> items = inventory.getItems();
+        if (items.isEmpty()) {
+            return "Your inventory is empty.";
+        }
+        
+        StringBuilder sb = new StringBuilder("You are carrying:\n");
+        for (Item i : items) {
+            sb.append("- ")
+              .append(i.getName())
+              .append(" (")
+              .append(i.getDescription())
+              .append(")\n");
+        }
+        return sb.toString();
     }
 }

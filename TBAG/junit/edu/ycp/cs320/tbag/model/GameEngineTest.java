@@ -1,4 +1,4 @@
-package test;
+package edu.ycp.cs320.tbag.model;
 
 import static org.junit.Assert.*;
 

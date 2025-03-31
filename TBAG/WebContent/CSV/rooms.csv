@@ -1,6 +1,10 @@
-ID|Room Name|Move1|Dest1|Move2|Dest2|Move3|Dest3|Move4|Dest4|Move5|Dest5
-1|Entrance|north|2|east|3||||||
-2|Lobby|south|1|east|4||||||
-3|Garden|west|1||||||||
-4|Corridor|west|2|north|5||||||
-5|Library|south|4||||||||
+1|Home|You wake up in your modest bedroom in a small apartment on the outskirts of the bustling city. Today marks the beginning of your journey toward independence, filled with hope and uncertainty.
+2|City Street|You stand on a busy city street—the lifeline of the urban jungle. Neon lights, honking cars, and the murmur of countless voices create a gateway to adventure.
+3|Fast Food Joint|Inside the fast food joint, the aroma of sizzling fries and burgers fills the air. This humble eatery is your first stop for a job that might kickstart your new life.
+4|Corporate Tower|The imposing corporate tower rises high, its glass façade reflecting the city’s ambition. Polished corridors and high-stakes challenges await those brave enough to enter.
+5|Shopping Mall|The shopping mall buzzes with energy and commerce—a sprawling labyrinth of stores and eateries where fortunes can be made or lost in an instant.
+6|City Park|A sprawling city park offers a serene escape from urban chaos. Lush greenery and winding paths provide solace, reflection, and the promise of hidden secrets.
+7|Abandoned Warehouse|On the edge of the city, an abandoned warehouse stands as a relic of the past. Its dark, cavernous interior whispers forgotten tales and mysterious treasures.
+8|Subway Station|Beneath the city’s surface, the subway station pulses with life. Echoing announcements and crowded platforms hint at a maze of underground passages.
+9|Library|The grand city library is a sanctuary of wisdom and quiet. Dusty tomes and hushed corners invite you to uncover mysteries and secrets long buried.
+10|Rooftop Garden|Hidden atop the corporate tower, a secret rooftop garden offers breathtaking views of the city. Amid flourishing greenery, you find a rare moment of tranquility and inspiration.

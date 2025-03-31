@@ -4,93 +4,146 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Manages a collection of Items in the game.
- * The Inventory can be used by the Player or for a Room's item collection.
+ * Represents an inventory that holds items for the player.
+ * It maintains a list of items and enforces a maximum weight capacity.
  */
 public class Inventory {
     private List<Item> items;
-    
+    private double maxWeight; // Maximum total weight allowed
+
     /**
-     * Constructs an empty Inventory.
+     * Creates an inventory with a default maximum weight (e.g., 50.0).
      */
     public Inventory() {
-        items = new ArrayList<>();
+        this.items = new ArrayList<>();
+        this.maxWeight = 50.0; // default maximum weight (adjust as needed)
     }
-    
+
     /**
-     * Adds an item to the inventory.
+     * Creates an inventory with a specified maximum weight.
      *
-     * @param item the Item to add
+     * @param maxWeight the maximum weight the inventory can hold
      */
-    public void addItem(Item item) {
-        items.add(item);
+    public Inventory(double maxWeight) {
+        this.items = new ArrayList<>();
+        this.maxWeight = maxWeight;
     }
-    
+
     /**
-     * Removes an item from the inventory.
+     * Checks if adding the specified item would exceed the maximum weight.
      *
-     * @param item the Item to remove
-     * @return true if the item was present and removed; false otherwise
+     * @param item the item to check
+     * @return true if the item can be added; false otherwise
+     */
+    public boolean canAddItem(Item item) {
+        return (getTotalWeight() + item.getWeight()) <= maxWeight;
+    }
+
+    /**
+     * Adds an item to the inventory if it doesn't exceed the max weight.
+     *
+     * @param item the item to add
+     * @return true if the item was added; false if it would exceed the max weight
+     */
+    public boolean addItem(Item item) {
+        if (canAddItem(item)) {
+            items.add(item);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Removes the specified item from the inventory.
+     *
+     * @param item the item to remove
+     * @return true if the item was removed; false if not found
      */
     public boolean removeItem(Item item) {
         return items.remove(item);
     }
-    
+
     /**
-     * Returns a list of all items in the inventory.
+     * Removes and returns the first item found with the given name (case-insensitive).
+     * If no such item is found, returns null.
      *
-     * @return the list of items
+     * @param name the name of the item to remove
+     * @return the removed Item, or null if not found
+     */
+    public Item removeItemByName(String name) {
+        for (Item item : items) {
+            if (item.getName().equalsIgnoreCase(name)) {
+                items.remove(item);
+                return item;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Calculates the total weight of all items in the inventory.
+     *
+     * @return the total weight
+     */
+    public double getTotalWeight() {
+        double total = 0.0;
+        for (Item item : items) {
+            total += item.getWeight();
+        }
+        return total;
+    }
+
+    /**
+     * Returns the list of items in the inventory.
+     *
+     * @return an unmodifiable list of items
      */
     public List<Item> getItems() {
         return items;
     }
-    
+
     /**
-     * Checks whether the inventory contains a specific item.
+     * Returns the maximum weight capacity of the inventory.
      *
-     * @param item the Item to check for
-     * @return true if the inventory contains the item, false otherwise
+     * @return the maximum weight
      */
-    public boolean containsItem(Item item) {
-        return items.contains(item);
+    public double getMaxWeight() {
+        return maxWeight;
     }
-    
+
     /**
-     * Returns the number of items in the inventory.
+     * Sets a new maximum weight capacity for the inventory.
      *
-     * @return the item count
+     * @param maxWeight the new maximum weight
      */
-    public int getItemCount() {
-        return items.size();
+    public void setMaxWeight(double maxWeight) {
+        this.maxWeight = maxWeight;
     }
-    
+
     /**
-     * Searches for an item in the inventory by its id.
+     * Provides a formatted string of the inventory's contents and current weight.
+     * Example:
+     *   "Inventory (Total Weight: 5.0 / 50.0):
+     *    - Fast Food Uniform (A neat uniform...) - Weight: 0.5, Value: 10.0
+     *    - Resume (A carefully prepared resume...) - Weight: 0.1, Value: 0.0"
      *
-     * @param id the unique identifier of the item
-     * @return the matching Item if found, otherwise null
+     * @return a string representation of the inventory
      */
-    public Item getItemById(int id) {
-        for (Item item : items) {
-            if (item.getId() == id) {
-                return item;
-            }
+    public String getInventoryString() {
+        if (items.isEmpty()) {
+            return "Inventory is empty.";
         }
-        return null;
-    }
-    
-    /**
-     * Searches for an item in the inventory by its name.
-     *
-     * @param name the name of the item
-     * @return the matching Item if found, otherwise null
-     */
-    public Item getItemByName(String name) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Inventory (Total Weight: ")
+          .append(getTotalWeight())
+          .append(" / ")
+          .append(maxWeight)
+          .append("):\n");
         for (Item item : items) {
-            if (item.getName().equalsIgnoreCase(name)) {
-                return item;
-            }
+            sb.append("- ")
+              .append(item.toString())
+              .append("\n");
         }
-        return null;
+        return sb.toString();
     }
 }
