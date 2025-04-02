@@ -1,8 +1,8 @@
 package edu.ycp.cs320.tbag.model;
 
+import edu.ycp.cs320.tbag.util.CSVLoader;
 import edu.ycp.cs320.tbag.events.Dialogue;
 import edu.ycp.cs320.tbag.events.EventManager;
-import edu.ycp.cs320.tbag.util.CSVLoader;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,10 +15,12 @@ public class GameEngine {
     private Map<Integer, Room> roomMap;   // Maps roomID to Room objects
     private Map<Integer, Item> itemMap;   // Maps itemID to Item objects
 
+
     public GameEngine() {
         transcript = new StringBuilder();
         roomMap = new HashMap<>();
         itemMap = new HashMap<>();
+        eventManager = new EventManager();
         initGame();
     }
     
@@ -77,7 +79,8 @@ public class GameEngine {
                 }
             }
             
-         // Load room events from CSV (events.csv format: roomID | eventType | description | probability | dialogue)
+            
+            // Load room events from CSV (events.csv format: roomID | eventType | description | probability | dialogue)
             List<String[]> eventRecords = CSVLoader.loadCSV("WebContent/CSV/events.csv", "\\|");
             for (String[] record : eventRecords) {
             	int roomId = Integer.parseInt(record[0].trim());

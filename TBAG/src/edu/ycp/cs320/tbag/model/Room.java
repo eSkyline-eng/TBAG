@@ -35,7 +35,6 @@ public class Room {
         this.connections = new HashMap<>();
         this.items = new ArrayList<>();
         events = new ArrayList<>();
-
     }
     
     /**
