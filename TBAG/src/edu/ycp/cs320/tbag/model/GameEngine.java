@@ -96,6 +96,23 @@ public class GameEngine {
                 }
             }
             
+            List<String[]> npcRecords = CSVLoader.loadCSV("WebContent/CSV/npcs.csv", "\\|");
+            for (String[] record : npcRecords) {
+                int npcID = Integer.parseInt(record[0].trim());
+                String name = record[1].trim();
+                String dialogue = record[2].trim();
+                int roomID = Integer.parseInt(record[3].trim());
+
+                NPC npc = new NPC(name, dialogue); // Create the NPC
+                Room room = roomMap.get(roomID);   // Find the room by ID
+                if (room != null) {
+                    room.addNPC(npc); // Add the NPC to the room
+                }else {
+                	 System.err.println("Error: Room ID " + roomID + " not found for NPC ");
+                }
+            }
+
+            
             // Set the initial room (for example, room with ID 1 is the starting point)
             currentRoom = roomMap.get(1);
         } catch (Exception e) {
@@ -115,7 +132,26 @@ public class GameEngine {
         String output = "";
         command = command.trim().toLowerCase();
         
-        if (command.startsWith("go ")) {
+        if (command.startsWith("talk to ")) {
+            String npcName = command.substring(8).trim();
+            NPC npc = currentRoom.getNPCByName(npcName); // Find NPC by name in the room
+            if (npc != null) {
+                output = npc.talk(); // Display what the NPC says
+            } else {
+                output = "There is no one by that name here.";      
+                }
+        } else if (command.equals("talk")) {
+            // If the player uses "talk" without specifying an NPC
+            if (currentRoom.getNPCs().isEmpty()) {
+                output = "There is no one to talk to here.";
+            } else {
+                output = "Who would you like to talk to? Available NPCs: ";
+                for (NPC npc : currentRoom.getNPCs()) {
+                    output += npc.getName() + ", ";
+                }
+                output = output.substring(0, output.length() - 2); // Remove trailing comma
+            }
+        }else if (command.startsWith("go ")) {
             String direction = command.substring(3).trim();
             Room nextRoom = currentRoom.getConnection(direction);
             if (nextRoom != null) {

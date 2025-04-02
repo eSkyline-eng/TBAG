@@ -19,6 +19,7 @@ public class Room {
     private String longDescription;
     private Map<String, Room> connections;  // e.g., "north" -> another Room
     private List<Item> items;              // Items present in this room
+    private List<NPC> npcs;
     private List<Event> events; 				// Adds event to each room
     
     /**
@@ -34,7 +35,8 @@ public class Room {
         this.longDescription = longDescription;
         this.connections = new HashMap<>();
         this.items = new ArrayList<>();
-        events = new ArrayList<>();
+        this.npcs = new ArrayList<>();
+        this.events = new ArrayList<>();
     }
     
     /**
@@ -178,5 +180,29 @@ public class Room {
     
     public List<Event> getEvents() {
     	return events;
+    }
+    
+    /**
+     * Adds a NPC to this room.
+     *
+     * @param npc the npc to add
+     */
+    public void addNPC(NPC npc) {
+        npcs.add(npc);
+    }
+
+    // Get all NPCs in the room
+    public List<NPC> getNPCs() {
+        return npcs;
+    }
+
+    // Optional: Get a specific NPC by name
+    public NPC getNPCByName(String name) {
+        for (NPC npc : npcs) {
+            if (npc.getName().equalsIgnoreCase(name)) {
+                return npc;
+            }
+        }
+        return null;
     }
 }
