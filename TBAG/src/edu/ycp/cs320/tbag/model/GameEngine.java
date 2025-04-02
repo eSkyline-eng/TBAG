@@ -1,5 +1,7 @@
 package edu.ycp.cs320.tbag.model;
 
+import edu.ycp.cs320.tbag.events.Dialogue;
+import edu.ycp.cs320.tbag.events.EventManager;
 import edu.ycp.cs320.tbag.util.CSVLoader;
 import java.util.HashMap;
 import java.util.List;
@@ -9,6 +11,7 @@ public class GameEngine {
     private Room currentRoom;
     private Player player;
     private StringBuilder transcript;
+    private EventManager eventManager;
     private Map<Integer, Room> roomMap;   // Maps roomID to Room objects
     private Map<Integer, Item> itemMap;   // Maps itemID to Item objects
 
@@ -74,6 +77,22 @@ public class GameEngine {
                 }
             }
             
+         // Load room events from CSV (events.csv format: roomID | eventType | description | probability | dialogue)
+            List<String[]> eventRecords = CSVLoader.loadCSV("WebContent/CSV/events.csv", "\\|");
+            for (String[] record : eventRecords) {
+            	int roomId = Integer.parseInt(record[0].trim());
+                String eventType = record[1].trim();
+                String description = record[2].trim();
+                double probability = Double.parseDouble(record[3].trim());
+                Room room = roomMap.get(roomId);
+                if (room != null) {
+                    if (eventType.equalsIgnoreCase("Dialogue")) {
+                    	String dialogue = record[4].trim();
+                        room.addEvent(new Dialogue(probability, dialogue));
+                    }
+                }
+            }
+            
             // Set the initial room (for example, room with ID 1 is the starting point)
             currentRoom = roomMap.get(1);
         } catch (Exception e) {
@@ -99,7 +118,15 @@ public class GameEngine {
             if (nextRoom != null) {
                 currentRoom = nextRoom;
                 player.setCurrentRoom(currentRoom);
-                output = currentRoom.getLongDescription() + "\n" + currentRoom.getRoomItemsString();
+                
+                // Trigger room-specific events if available
+                if (!currentRoom.getEvents().isEmpty()) {
+                    String eventOutput = eventManager.triggerEvents(currentRoom.getEvents(), player);
+                    output = eventOutput;
+                } else {
+                    output = currentRoom.getLongDescription() + "\n" + currentRoom.getRoomItemsString();
+                }
+                                
             } else {
                 output = "You cannot go that way. Available directions: " + currentRoom.getAvailableDirections();
             }

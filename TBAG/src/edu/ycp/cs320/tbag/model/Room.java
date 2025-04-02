@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import edu.ycp.cs320.tbag.events.Event;
+
 /**
  * Represents a location (room) in the TBAG game.
  * Rooms have a unique ID, a name, a detailed narrative description,
@@ -17,6 +19,7 @@ public class Room {
     private String longDescription;
     private Map<String, Room> connections;  // e.g., "north" -> another Room
     private List<Item> items;              // Items present in this room
+    private List<Event> events; 				// Adds event to each room
     
     /**
      * Constructs a new Room with the given ID, name, and long description.
@@ -31,6 +34,8 @@ public class Room {
         this.longDescription = longDescription;
         this.connections = new HashMap<>();
         this.items = new ArrayList<>();
+        events = new ArrayList<>();
+
     }
     
     /**
@@ -165,5 +170,14 @@ public class Room {
      */
     public String getName() {
         return name;
+    }
+    
+    // Add event per room
+    public void addEvent(Event event) {
+    	events.add(event);
+    }
+    
+    public List<Event> getEvents() {
+    	return events;
     }
 }
