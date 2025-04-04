@@ -1,6 +1,7 @@
 package edu.ycp.cs320.tbag.model;
 
 import edu.ycp.cs320.tbag.util.CSVLoader;
+import edu.ycp.cs320.tbag.events.Damage;
 import edu.ycp.cs320.tbag.events.Dialogue;
 import edu.ycp.cs320.tbag.events.EventManager;
 import java.util.HashMap;
@@ -87,11 +88,14 @@ public class GameEngine {
                 String eventType = record[1].trim();
                 String description = record[2].trim();
                 double probability = Double.parseDouble(record[3].trim());
+                String dialogue = record[4].trim();
+                int dam = Integer.parseInt(record[5].trim());
                 Room room = roomMap.get(roomId);
                 if (room != null) {
                     if (eventType.equalsIgnoreCase("Dialogue")) {
-                    	String dialogue = record[4].trim();
                         room.addEvent(new Dialogue(probability, dialogue));
+                    } else if (eventType.equalsIgnoreCase("Damage")) {
+                    	room.addEvent(new Damage(probability, dialogue, dam));
                     }
                 }
             }
@@ -111,7 +115,6 @@ public class GameEngine {
                 	 System.err.println("Error: Room ID " + roomID + " not found for NPC ");
                 }
             }
-
             
             // Set the initial room (for example, room with ID 1 is the starting point)
             currentRoom = roomMap.get(1);
@@ -158,14 +161,20 @@ public class GameEngine {
                 currentRoom = nextRoom;
                 player.setCurrentRoom(currentRoom);
                 
-                // Trigger room-specific events if available
+                StringBuilder sb = new StringBuilder();
+                sb.append(currentRoom.getLongDescription()).append("\n");
+                sb.append(currentRoom.getRoomItemsString());
+
                 if (!currentRoom.getEvents().isEmpty()) {
                     String eventOutput = eventManager.triggerEvents(currentRoom.getEvents(), player);
-                    output = eventOutput;
-                } else {
-                    output = currentRoom.getLongDescription() + "\n" + currentRoom.getRoomItemsString();
+                    if (!eventOutput.isEmpty()) {
+                        sb.append("\n\n").append(eventOutput);
+                    }
                 }
-                                
+
+                output = sb.toString();
+
+                        
             } else {
                 output = "You cannot go that way. Available directions: " + currentRoom.getAvailableDirections();
             }
@@ -210,7 +219,10 @@ public class GameEngine {
             } else {
                 output = "You don't have that item.";
             }
-        } else {
+        } else if (command.equals("health")) {
+        	output = "Health: " + player.getHealth();
+        }
+        else {
             output = "I don't understand that command.";
         }
         
