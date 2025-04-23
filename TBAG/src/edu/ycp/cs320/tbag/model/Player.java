@@ -1,23 +1,34 @@
 package edu.ycp.cs320.tbag.model;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+import edu.ycp.cs320.tbag.ending.Achievement;
+
 public class Player extends Character {
-    private int score; // Player-specific property
+    private int time; // Player-specific property
     private Room currentRoom; // The room the player is currently in
+    private Map<String, Achievement> achievements = new HashMap<>();
 
     public Player() {
         super(); // Calls the Character constructor to initialize health and inventory
-        this.score = 0; // Default score value
+        this.time = 500; // Default score value
     }
 
     // Getters and setters for score
-    public int getScore() {
-        return score;
+    public int getTime() {
+        return time;
     }
     
-    public void addScore(int points) {
-        this.score += points;
+    public void reduceTime(int points) {
+        this.time -= points;
     }
 
+    public boolean outOfTime() {
+    	return time <= 0;
+    }
+    
     // Room management
     public Room getCurrentRoom() {
         return currentRoom;
@@ -25,6 +36,23 @@ public class Player extends Character {
 
     public void setCurrentRoom(Room currentRoom) {
         this.currentRoom = currentRoom;
+    }
+    
+    // Achievements
+    public void unlockAchievement(String id, String description) {
+        achievements.put(id, new Achievement(id, description, true));
+    }
+
+    public boolean hasAchievement(String id) {
+        return achievements.containsKey(id) && achievements.get(id).isCompleted();
+    }
+
+    public Set<String> getAchievementIDs() {
+        return achievements.keySet();
+    }
+
+    public Map<String, Achievement> getAchievements() {
+        return achievements;
     }
     
     // Inventory management (inherited from Character)

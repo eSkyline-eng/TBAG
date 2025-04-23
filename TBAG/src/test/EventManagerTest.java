@@ -89,11 +89,6 @@ public class EventManagerTest {
 
     // ---- Extra Tests for Coverage ----
 
-    @Test
-    public void testAddScore() {
-        player.addScore(10);
-        assertEquals(10, player.getScore());
-    }
 
     @Test
     public void testSetAndGetHealth() {

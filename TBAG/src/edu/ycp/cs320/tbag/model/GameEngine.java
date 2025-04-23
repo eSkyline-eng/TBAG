@@ -1,9 +1,13 @@
 package edu.ycp.cs320.tbag.model;
 
+import edu.ycp.cs320.tbag.db.persist.*;
+
 import edu.ycp.cs320.tbag.util.CSVLoader;
 import edu.ycp.cs320.tbag.events.Damage;
 import edu.ycp.cs320.tbag.events.Dialogue;
 import edu.ycp.cs320.tbag.events.EventManager;
+import edu.ycp.cs320.tbag.db.persist.DatabaseProvider;
+import edu.ycp.cs320.tbag.db.persist.IDatabase;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +26,7 @@ public class GameEngine {
         roomMap = new HashMap<>();
         itemMap = new HashMap<>();
         eventManager = new EventManager();
+        DatabaseProvider.setInstance(new DerbyGameDatabase());
         initGame();
     }
     
@@ -51,32 +56,6 @@ public class GameEngine {
                 Room toRoom = roomMap.get(toId);
                 if (fromRoom != null && toRoom != null) {
                     fromRoom.addConnection(direction, toRoom);
-                }
-            }
-            
-            // Load items from CSV (items.csv format: itemID | itemName | description | weight | value)
-            List<String[]> itemRecords = CSVLoader.loadCSV("WebContent/CSV/items.csv", "\\|");
-            for (String[] record : itemRecords) {
-                int itemId = Integer.parseInt(record[0].trim());
-                String itemName = record[1].trim();
-                String description = record[2].trim();
-                double weight = Double.parseDouble(record[3].trim());
-                double value = Double.parseDouble(record[4].trim());
-                Item item = new Item(itemId, itemName, description, weight, value);
-                itemMap.put(itemId, item);
-            }
-            
-            // Assign items to rooms using room_items.csv (format: roomID | itemID)
-            List<String[]> roomItemsRecords = CSVLoader.loadCSV("WebContent/CSV/room_items.csv", "\\|");
-            for (String[] record : roomItemsRecords) {
-                int roomId = Integer.parseInt(record[0].trim());
-                int itemId = Integer.parseInt(record[1].trim());
-                Room room = roomMap.get(roomId);
-                Item item = itemMap.get(itemId);
-                if (room != null && item != null) {
-                    // Clone the item if needed (so multiple rooms can have similar items) 
-                    // For now, we simply add the same item instance.
-                    room.addItem(item);
                 }
             }
             
@@ -122,9 +101,43 @@ public class GameEngine {
             transcript.append("Error loading game data: ").append(e.getMessage()).append("\n");
         }
         
-        // Initialize the player and set their starting room.
-        player = new Player();
-        player.setCurrentRoom(currentRoom);
+        IDatabase db = DatabaseProvider.getInstance();
+        
+        // initialize the player and set their starting room.
+        player = db.loadPlayerState();
+        if (player == null) {
+        	player = new Player();
+        	player.setHealth(100);
+        	player.setCurrentRoom(currentRoom);
+        	db.savePlayerState(player.getHealth(), currentRoom.getId());
+        } else { // if user already exists
+        	int roomId = db.getPlayerRoomId();
+        	currentRoom = roomMap.get(roomId);
+        	player.setCurrentRoom(currentRoom);
+        }
+        
+        // Loads items from database
+        itemMap = db.loadItemDefinitions();
+
+        List<ItemLocation> itemLocations = db.loadAllItemLocations();
+        for (ItemLocation loc : itemLocations) {
+            Item item = itemMap.get(loc.getItemId());
+            if (item != null) {
+                if (loc.getLocationType().equals("room")) {
+                    Room room = roomMap.get(loc.getLocationId());
+                    if (room != null) {
+                        for (int i = 0; i < loc.getQuantity(); i++) {
+                            room.addItem(item);
+                        }
+                    }
+                } else if (loc.getLocationType().equals("player")) {
+                    for (int i = 0; i < loc.getQuantity(); i++) {
+                        player.pickUpItem(item);
+                    }
+                }
+            }
+        }
+
         
         // Append starting room details to the transcript.
         transcript.append(currentRoom.getLongDescription()).append("\n");
@@ -158,8 +171,12 @@ public class GameEngine {
             String direction = command.substring(3).trim();
             Room nextRoom = currentRoom.getConnection(direction);
             if (nextRoom != null) {
+            	// Session information
                 currentRoom = nextRoom;
                 player.setCurrentRoom(currentRoom);
+                // Update the player room in DB
+                IDatabase db = DatabaseProvider.getInstance();
+                db.updatePlayerLocation(currentRoom.getId());
                 
                 StringBuilder sb = new StringBuilder();
                 sb.append(currentRoom.getLongDescription()).append("\n");
@@ -171,9 +188,8 @@ public class GameEngine {
                         sb.append("\n\n").append(eventOutput);
                     }
                 }
-
+                	
                 output = sb.toString();
-
                         
             } else {
                 output = "You cannot go that way. Available directions: " + currentRoom.getAvailableDirections();
@@ -183,25 +199,46 @@ public class GameEngine {
         } else if (command.equals("help")) {
             output = "Available commands: go [direction], look, help, restart, inventory, take [item], drop [item].";
         } else if (command.equals("restart")) {
+            IDatabase db = DatabaseProvider.getInstance();
+            db.resetGameData();
+
             initGame();
-            output = "Game restarted.\n" + currentRoom.getLongDescription() + "\n" + currentRoom.getRoomItemsString();
+
+            output = "Game and database restarted.\n" +
+                     currentRoom.getLongDescription() + "\n" +
+                     currentRoom.getRoomItemsString();
         } else if (command.equals("inventory")) {
             output = player.getInventoryString();
         } else if (command.startsWith("take ")) {
+	    String itemName = command.substring(5).trim();
+	    IDatabase db = DatabaseProvider.getInstance();
+
+	    List<ItemLocation> roomItems = db.getItemsAtLocation("room", currentRoom.getId());
+	    ItemLocation found = null;
+	    for (ItemLocation loc : roomItems) {
+	        Item item = itemMap.get(loc.getItemId());
+	        if (item != null && item.getName().equalsIgnoreCase(itemName)) {
+	            found = loc;
+	            break;
+	        }
+	    }
+
+	    if (found != null) {
+	        Item targetItem = itemMap.get(found.getItemId());
+	        if (player.pickUpItem(targetItem)) {
+	            db.transferItem(found.getInstanceId(), "room", currentRoom.getId(), "player", 1);
+	            output = "You picked up the " + targetItem.getName() + ".";
+	        } else {
+	            currentRoom.addItem(targetItem);
+	            output = "You can't carry the " + targetItem.getName() + ".";
+	        }
+	    } else {
+	        output = "That item isn't here.";
+	    }
+	} else if (command.startsWith("drop ")) {
             String itemName = command.substring(5).trim();
-            Item itemToTake = currentRoom.removeItemByName(itemName);
-            if (itemToTake != null) {
-                if (player.pickUpItem(itemToTake)) {
-                    output = "You picked up the " + itemToTake.getName() + ".";
-                } else {
-                    currentRoom.addItem(itemToTake);
-                    output = "You cannot carry the " + itemToTake.getName() + " (too heavy).";
-                }
-            } else {
-                output = "That item is not here.";
-            }
-        } else if (command.startsWith("drop ")) {
-            String itemName = command.substring(5).trim();
+            IDatabase db = DatabaseProvider.getInstance();
+            
             Item droppedItem = null;
             for (Item item : player.getInventory().getItems()) {
                 if (item.getName().equalsIgnoreCase(itemName)) {
@@ -209,9 +246,21 @@ public class GameEngine {
                     break;
                 }
             }
+
             if (droppedItem != null) {
+            	List<ItemLocation> playerItems = db.getItemsAtLocation("player", 1);
+            	
+                ItemLocation instanceToDrop = null;
+                for (ItemLocation loc : playerItems) {
+                    if (loc.getItemId() == droppedItem.getId()) {
+                        instanceToDrop = loc;
+                        break;
+                    }
+                }
+                
                 if (player.dropItem(droppedItem)) {
                     currentRoom.addItem(droppedItem);
+                    db.transferItem(instanceToDrop.getInstanceId(), "player", 1, "room", currentRoom.getId());
                     output = "You dropped the " + droppedItem.getName() + ".";
                 } else {
                     output = "Couldn't drop the item.";
@@ -238,4 +287,5 @@ public class GameEngine {
     public Player getPlayer() {
         return player;
     }
+
 }

@@ -3,6 +3,10 @@ package edu.ycp.cs320.tbag.servlet;
 import java.io.IOException;
 import javax.servlet.ServletException;
 import javax.servlet.http.*;
+
+import edu.ycp.cs320.tbag.db.persist.DatabaseProvider;
+import edu.ycp.cs320.tbag.db.persist.IDatabase;
+
 import javax.servlet.annotation.WebServlet;
 
 @WebServlet("/index")
@@ -17,6 +21,7 @@ public class IndexServlet extends HttpServlet {
         if (session != null) {
             session.invalidate();
         }
+       
         req.getRequestDispatcher("/_view/index.jsp").forward(req, resp);
     }
 }

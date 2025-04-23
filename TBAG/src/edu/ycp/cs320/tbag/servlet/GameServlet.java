@@ -6,6 +6,8 @@ import javax.servlet.http.*;
 import javax.servlet.annotation.WebServlet;
 
 import edu.ycp.cs320.tbag.controller.GameController;
+import edu.ycp.cs320.tbag.db.persist.DatabaseProvider;
+import edu.ycp.cs320.tbag.db.persist.IDatabase;
 import edu.ycp.cs320.tbag.model.GameEngine;
 
 @WebServlet("/game")
@@ -26,6 +28,9 @@ public class GameServlet extends HttpServlet {
             GameController controller = new GameController(engine);
             session.setAttribute("gameController", controller);
         }
+        // Reset the database too
+        IDatabase db = DatabaseProvider.getInstance();
+        db.resetGameData();
         req.getRequestDispatcher("/_view/game.jsp").forward(req, resp);
     }
     

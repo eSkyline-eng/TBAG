@@ -140,12 +140,6 @@ public class PlayerRoomInventoryTest {
     }
 
     @Test
-    public void testPlayerScoreAddAndGet() {
-        player.addScore(50);
-        assertEquals(50, player.getScore());
-    }
-
-    @Test
     public void testPlayerRoomAssignment() {
         player.setCurrentRoom(room);
         assertEquals(room, player.getCurrentRoom());

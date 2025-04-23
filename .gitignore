@@ -1,1 +1,4 @@
 /TBAG/bin/.gitignore
+# Local database config, not tracked
+config.properties
+TBAG/derby.log
