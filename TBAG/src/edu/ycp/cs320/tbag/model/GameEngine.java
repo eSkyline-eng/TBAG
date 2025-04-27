@@ -35,73 +35,14 @@ public class GameEngine {
      */
     private void initGame() {
         transcript.setLength(0);
-        try {
-            // Load rooms from CSV (rooms.csv format: roomID | roomName | longDescription)
-            List<String[]> roomRecords = CSVLoader.loadCSV("WebContent/CSV/rooms.csv", "\\|");
-            for (String[] record : roomRecords) {
-                int id = Integer.parseInt(record[0].trim());
-                String name = record[1].trim();
-                String longDescription = record[2].trim();
-                Room room = new Room(id, name, longDescription);
-                roomMap.put(id, room);
-            }
-            
-            // Load connections from CSV (connections.csv format: fromRoomID | direction | toRoomID)
-            List<String[]> connectionRecords = CSVLoader.loadCSV("WebContent/CSV/connections.csv", "\\|");
-            for (String[] record : connectionRecords) {
-                int fromId = Integer.parseInt(record[0].trim());
-                String direction = record[1].trim().toLowerCase();
-                int toId = Integer.parseInt(record[2].trim());
-                Room fromRoom = roomMap.get(fromId);
-                Room toRoom = roomMap.get(toId);
-                if (fromRoom != null && toRoom != null) {
-                    fromRoom.addConnection(direction, toRoom);
-                }
-            }
-            
-            
-            // Load room events from CSV (events.csv format: roomID | eventType | description | probability | dialogue)
-            List<String[]> eventRecords = CSVLoader.loadCSV("WebContent/CSV/events.csv", "\\|");
-            for (String[] record : eventRecords) {
-            	int roomId = Integer.parseInt(record[0].trim());
-                String eventType = record[1].trim();
-                String description = record[2].trim();
-                double probability = Double.parseDouble(record[3].trim());
-                String dialogue = record[4].trim();
-                int dam = Integer.parseInt(record[5].trim());
-                Room room = roomMap.get(roomId);
-                if (room != null) {
-                    if (eventType.equalsIgnoreCase("Dialogue")) {
-                        room.addEvent(new Dialogue(probability, dialogue));
-                    } else if (eventType.equalsIgnoreCase("Damage")) {
-                    	room.addEvent(new Damage(probability, dialogue, dam));
-                    }
-                }
-            }
-            
-            List<String[]> npcRecords = CSVLoader.loadCSV("WebContent/CSV/npcs.csv", "\\|");
-            for (String[] record : npcRecords) {
-                int npcID = Integer.parseInt(record[0].trim());
-                String name = record[1].trim();
-                String dialogue = record[2].trim();
-                int roomID = Integer.parseInt(record[3].trim());
-
-                NPC npc = new NPC(name, dialogue); // Create the NPC
-                Room room = roomMap.get(roomID);   // Find the room by ID
-                if (room != null) {
-                    room.addNPC(npc); // Add the NPC to the room
-                }else {
-                	 System.err.println("Error: Room ID " + roomID + " not found for NPC ");
-                }
-            }
-            
-            // Set the initial room (for example, room with ID 1 is the starting point)
-            currentRoom = roomMap.get(1);
-        } catch (Exception e) {
-            transcript.append("Error loading game data: ").append(e.getMessage()).append("\n");
-        }
         
         IDatabase db = DatabaseProvider.getInstance();
+        
+        // Load rooms and connections from the database
+        roomMap = db.loadRooms();
+        db.loadConnections(roomMap);
+        
+        currentRoom = roomMap.get(1);
         
         // initialize the player and set their starting room.
         player = db.loadPlayerState();
@@ -136,6 +77,45 @@ public class GameEngine {
                     }
                 }
             }
+        }
+        
+        try {
+            // Load room events from CSV (events.csv format: roomID | eventType | description | probability | dialogue)
+            List<String[]> eventRecords = CSVLoader.loadCSV("WebContent/CSV/events.csv", "\\|");
+            for (String[] record : eventRecords) {
+            	int roomId = Integer.parseInt(record[0].trim());
+                String eventType = record[1].trim();
+                String description = record[2].trim();
+                double probability = Double.parseDouble(record[3].trim());
+                String dialogue = record[4].trim();
+                int dam = Integer.parseInt(record[5].trim());
+                Room room = roomMap.get(roomId);
+                if (room != null) {
+                    if (eventType.equalsIgnoreCase("Dialogue")) {
+                        room.addEvent(new Dialogue(probability, dialogue));
+                    } else if (eventType.equalsIgnoreCase("Damage")) {
+                    	room.addEvent(new Damage(probability, dialogue, dam));
+                    }
+                }
+            }
+            
+            List<String[]> npcRecords = CSVLoader.loadCSV("WebContent/CSV/npcs.csv", "\\|");
+            for (String[] record : npcRecords) {
+                int npcID = Integer.parseInt(record[0].trim());
+                String name = record[1].trim();
+                String dialogue = record[2].trim();
+                int roomID = Integer.parseInt(record[3].trim());
+
+                NPC npc = new NPC(name, dialogue); // Create the NPC
+                Room room = roomMap.get(roomID);   // Find the room by ID
+                if (room != null) {
+                    room.addNPC(npc); // Add the NPC to the room
+                }else {
+                	 System.err.println("Error: Room ID " + roomID + " not found for NPC ");
+                }
+            }
+        } catch (Exception e) {
+            transcript.append("Error loading game data: ").append(e.getMessage()).append("\n");
         }
 
         

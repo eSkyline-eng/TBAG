@@ -28,9 +28,6 @@ public class GameServlet extends HttpServlet {
             GameController controller = new GameController(engine);
             session.setAttribute("gameController", controller);
         }
-        // Reset the database too
-        IDatabase db = DatabaseProvider.getInstance();
-        db.resetGameData();
         req.getRequestDispatcher("/_view/game.jsp").forward(req, resp);
     }
     

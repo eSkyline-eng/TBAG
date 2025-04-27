@@ -16,6 +16,7 @@ import java.util.Map;
 import edu.ycp.cs320.tbag.model.Item;
 import edu.ycp.cs320.tbag.model.ItemLocation;
 import edu.ycp.cs320.tbag.model.Player;
+import edu.ycp.cs320.tbag.model.Room;
 import edu.ycp.cs320.tbag.util.CSVLoader;
 
 import java.util.Properties;
@@ -54,6 +55,12 @@ public class DerbyGameDatabase implements IDatabase {
 
     		// Load room items from room_items.csv
     		db.loadRoomItemsFromCSV("WebContent/CSV/room_items.csv");
+    		
+    		// Load rooms from rooms.csv
+    		db.loadRoomsFromCSV("WebContent/CSV/rooms.csv");
+    		
+    		// Load connections from connection.csv
+            db.loadConnectionsFromCSV("WebContent/CSV/connections.csv");
 
     		System.out.println("Database successfully initialized with items.");
     	} catch (Exception e) {
@@ -103,6 +110,30 @@ public class DerbyGameDatabase implements IDatabase {
             } catch (SQLException e) {
                 if (!"X0Y32".equals(e.getSQLState())) throw e;
             }
+            
+            try {
+            	conn.prepareStatement(
+                    "CREATE TABLE rooms (" +
+                    "room_id INT PRIMARY KEY, " +
+                    "name VARCHAR(100), " +
+                    "long_description VARCHAR(1000))"
+                ).executeUpdate();
+            } catch (SQLException e) {
+            	if (!"X0Y32".equals(e.getSQLState())) throw e;
+            }
+
+            try {
+                conn.prepareStatement(
+                    "CREATE TABLE connections (" +
+                    "connection_id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY, " +
+                    "from_room_id INT REFERENCES rooms(room_id), " +
+                    "direction VARCHAR(50), " +
+                    "to_room_id INT REFERENCES rooms(room_id))"
+                ).executeUpdate();
+            } catch(SQLException e) {
+            	if (!"X0Y32".equals(e.getSQLState())) throw e;
+            }
+
 
             System.out.println("Tables created (or already existed).");
             return true;
@@ -254,7 +285,62 @@ public class DerbyGameDatabase implements IDatabase {
             return null;
         });
     }
+    
+    public void loadRoomsFromCSV(String filePath) {
+        executeTransaction(conn -> {
+        	List<String[]> roomRecords;
+        	try {
+        		roomRecords = CSVLoader.loadCSV(filePath, "\\|");
+        	} catch (IOException e) {
+                throw new SQLException("Failed to load CSV: " + filePath, e);
+            }
 
+            // Clear existing rooms (optional)
+            conn.prepareStatement("DELETE FROM rooms").executeUpdate();
+
+            // Insert rooms
+            PreparedStatement stmt = conn.prepareStatement(
+                "INSERT INTO rooms (room_id, name, long_description) VALUES (?, ?, ?)"
+            );
+            for (String[] record : roomRecords) {
+                stmt.setInt(1, Integer.parseInt(record[0].trim()));
+                stmt.setString(2, record[1].trim());
+                stmt.setString(3, record[2].trim());
+                stmt.addBatch();
+            }
+            stmt.executeBatch();
+            return null;
+        });
+    }
+
+    public void loadConnectionsFromCSV(String filePath) {
+        executeTransaction(conn -> {
+        	List<String[]> connectionRecords;
+        	try {
+        		connectionRecords = CSVLoader.loadCSV(filePath, "\\|");
+        	} catch (IOException e) {
+                throw new SQLException("Failed to load CSV: " + filePath, e);
+            }
+
+            // Clear existing connections (optional)
+            conn.prepareStatement("DELETE FROM connections").executeUpdate();
+
+            // Insert connections
+            PreparedStatement stmt = conn.prepareStatement(
+                "INSERT INTO connections (from_room_id, direction, to_room_id) VALUES (?, ?, ?)"
+            );
+            for (String[] record : connectionRecords) {
+                stmt.setInt(1, Integer.parseInt(record[0].trim()));
+                stmt.setString(2, record[1].trim().toLowerCase());
+                stmt.setInt(3, Integer.parseInt(record[2].trim()));
+                stmt.addBatch();
+            }
+            stmt.executeBatch();
+            return null;
+        });
+    }
+
+ 
     @Override
     public void transferItem(int instanceId, String fromType, int fromId, String toType, int toId) {
         executeTransaction(conn -> {
@@ -344,6 +430,42 @@ public class DerbyGameDatabase implements IDatabase {
             return map;
         });
     }
+    
+    public Map<Integer, Room> loadRooms() {
+        return executeTransaction(conn -> {
+            Map<Integer, Room> roomMap = new HashMap<>();
+            PreparedStatement stmt = conn.prepareStatement("SELECT * FROM rooms");
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                int roomId = rs.getInt("room_id");
+                String name = rs.getString("name");
+                String description = rs.getString("long_description");
+                Room room = new Room(roomId, name, description);
+                roomMap.put(roomId, room);
+            }
+            return roomMap;
+        });
+    }
+
+    public void loadConnections(Map<Integer, Room> roomMap) {
+        executeTransaction(conn -> {
+            PreparedStatement stmt = conn.prepareStatement("SELECT * FROM connections");
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                int fromRoomId = rs.getInt("from_room_id");
+                String direction = rs.getString("direction");
+                int toRoomId = rs.getInt("to_room_id");
+
+                Room fromRoom = roomMap.get(fromRoomId);
+                Room toRoom = roomMap.get(toRoomId);
+                if (fromRoom != null && toRoom != null) {
+                    fromRoom.addConnection(direction, toRoom);
+                }
+            }
+            return null;
+        });
+    }
+
 
     public<ResultType> ResultType executeTransaction(Transaction<ResultType> txn) {
 		try {

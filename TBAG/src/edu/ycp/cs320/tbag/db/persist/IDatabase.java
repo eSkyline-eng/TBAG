@@ -6,6 +6,7 @@ import java.util.Map;
 import edu.ycp.cs320.tbag.model.Item;
 import edu.ycp.cs320.tbag.model.ItemLocation;
 import edu.ycp.cs320.tbag.model.Player;
+import edu.ycp.cs320.tbag.model.Room;
 
 public interface IDatabase {
 	void savePlayerState(int hp, int roomId);
@@ -18,4 +19,6 @@ public interface IDatabase {
 	List<ItemLocation> getItemsAtLocation(String locationType, int locationId);
 	List<ItemLocation> loadAllItemLocations();
 	Map<Integer, Item> loadItemDefinitions();
+	Map<Integer, Room> loadRooms();
+	void loadConnections(Map<Integer, Room> roomMap);
 }
