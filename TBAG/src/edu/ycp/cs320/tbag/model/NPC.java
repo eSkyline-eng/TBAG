@@ -3,6 +3,7 @@ package edu.ycp.cs320.tbag.model;
 public class NPC extends Character {
     private String name;
     private String dialogue; // What the NPC says when spoken to
+    private int roomId;
 
     public NPC(String name, String dialogue) {
         super(); // Initialize inherited attributes (like health and inventory)
@@ -26,6 +27,10 @@ public class NPC extends Character {
     public void setDialogue(String dialogue) {
         this.dialogue = dialogue;
     }
+    
+    public int getRoomId() { return roomId; }
+    
+    public void setRoomId(int roomId) { this.roomId = roomId; }
 
     // Method for player to interact with the NPC
     public String talk() {

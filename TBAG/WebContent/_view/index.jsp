@@ -60,7 +60,7 @@
             Explore mysterious city streets, unlock hidden secrets, and build your legacy!
         </p>
         <form action="game" method="get">
-            <input type="submit" class="btn" value="Start Game">
+            <input type="submit" class="btn" value="Play Game">
         </form>
     </div>
     <footer>

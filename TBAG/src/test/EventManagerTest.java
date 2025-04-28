@@ -42,7 +42,7 @@ public class EventManagerTest {
     public void testDamageEventDoesNotTrigger() {
         events.add(new Damage(0.0, "Invisible banana peel!", 10));
         String result = eventManager.triggerEvents(events, player);
-        assertTrue(result.isBlank());
+        assertTrue(result.trim().isEmpty());
         assertEquals(100, player.getHealth());
     }
 

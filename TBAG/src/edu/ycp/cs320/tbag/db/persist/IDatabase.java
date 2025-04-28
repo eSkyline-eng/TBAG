@@ -7,6 +7,8 @@ import edu.ycp.cs320.tbag.model.Item;
 import edu.ycp.cs320.tbag.model.ItemLocation;
 import edu.ycp.cs320.tbag.model.Player;
 import edu.ycp.cs320.tbag.model.Room;
+import edu.ycp.cs320.tbag.model.NPC;
+
 
 public interface IDatabase {
 	void savePlayerState(int hp, int roomId);
@@ -21,4 +23,8 @@ public interface IDatabase {
 	Map<Integer, Item> loadItemDefinitions();
 	Map<Integer, Room> loadRooms();
 	void loadConnections(Map<Integer, Room> roomMap);
+	
+	void loadNPCsFromCSV(String filePath);
+	List<NPC> loadAllNPCs();
+
 }

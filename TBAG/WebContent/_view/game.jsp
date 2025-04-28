@@ -103,10 +103,11 @@
             <input type="text" id="commandInput" name="command" placeholder="Enter your command here..." autofocus>
             <input type="submit" id="submitCommand" value="Submit">
         </form>
-        <!-- Restart game button -->
-        <form id="restartForm" action="index" method="get">
-            <input type="submit" value="Restart Game">
-        </form>
+		<!-- Restart game button -->
+		<form id="restartForm" action="index" method="get">
+			<input type="hidden" name="restart" value="true"/>
+		    <input type="submit" value="Restart Game">
+		</form>
     </div>
 </body>
 </html>

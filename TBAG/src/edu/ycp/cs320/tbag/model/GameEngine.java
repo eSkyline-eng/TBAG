@@ -42,6 +42,14 @@ public class GameEngine {
         roomMap = db.loadRooms();
         db.loadConnections(roomMap);
         
+        for (NPC npc : db.loadAllNPCs()) {
+            // assign the roomId you loaded earlier
+            Room room = roomMap.get(npc.getRoomId());
+            if (room != null) {
+                room.addNPC(npc);
+            }
+        }
+        
         currentRoom = roomMap.get(1);
         
         // initialize the player and set their starting room.
@@ -99,21 +107,6 @@ public class GameEngine {
                 }
             }
             
-            List<String[]> npcRecords = CSVLoader.loadCSV("WebContent/CSV/npcs.csv", "\\|");
-            for (String[] record : npcRecords) {
-                int npcID = Integer.parseInt(record[0].trim());
-                String name = record[1].trim();
-                String dialogue = record[2].trim();
-                int roomID = Integer.parseInt(record[3].trim());
-
-                NPC npc = new NPC(name, dialogue); // Create the NPC
-                Room room = roomMap.get(roomID);   // Find the room by ID
-                if (room != null) {
-                    room.addNPC(npc); // Add the NPC to the room
-                }else {
-                	 System.err.println("Error: Room ID " + roomID + " not found for NPC ");
-                }
-            }
         } catch (Exception e) {
             transcript.append("Error loading game data: ").append(e.getMessage()).append("\n");
         }
@@ -206,9 +199,15 @@ public class GameEngine {
 	    if (found != null) {
 	        Item targetItem = itemMap.get(found.getItemId());
 	        if (player.pickUpItem(targetItem)) {
+	            // 1) Remove it from the room’s in-memory list
+	            currentRoom.removeItem(targetItem);
+
+	            // 2) Persist the change
 	            db.transferItem(found.getInstanceId(), "room", currentRoom.getId(), "player", 1);
+
 	            output = "You picked up the " + targetItem.getName() + ".";
 	        } else {
+	            // no change here
 	            currentRoom.addItem(targetItem);
 	            output = "You can't carry the " + targetItem.getName() + ".";
 	        }

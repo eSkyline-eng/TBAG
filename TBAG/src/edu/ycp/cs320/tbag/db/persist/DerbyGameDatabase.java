@@ -18,6 +18,7 @@ import edu.ycp.cs320.tbag.model.ItemLocation;
 import edu.ycp.cs320.tbag.model.Player;
 import edu.ycp.cs320.tbag.model.Room;
 import edu.ycp.cs320.tbag.util.CSVLoader;
+import edu.ycp.cs320.tbag.model.NPC;
 
 import java.util.Properties;
 import java.io.FileInputStream;
@@ -129,6 +130,19 @@ public class DerbyGameDatabase implements IDatabase {
                     "from_room_id INT REFERENCES rooms(room_id), " +
                     "direction VARCHAR(50), " +
                     "to_room_id INT REFERENCES rooms(room_id))"
+                ).executeUpdate();
+            } catch(SQLException e) {
+            	if (!"X0Y32".equals(e.getSQLState())) throw e;
+            }
+            
+            try {
+                conn.prepareStatement(
+                    "CREATE TABLE npc (" +
+                    "npc_id INT PRIMARY KEY, " +
+                    "name VARCHAR(100), " +
+                    "dialogue VARCHAR(1000), " +
+                    "room_id INT REFERENCES rooms(room_id)" +
+                    ")"
                 ).executeUpdate();
             } catch(SQLException e) {
             	if (!"X0Y32".equals(e.getSQLState())) throw e;
@@ -340,6 +354,41 @@ public class DerbyGameDatabase implements IDatabase {
         });
     }
 
+    public void loadNPCsFromCSV(String filePath) {
+        executeTransaction(conn -> {
+            List<String[]> records;
+            try {
+                // Read NPC definitions: npc_id | name | dialogue | room_id
+                records = CSVLoader.loadCSV(filePath, "\\|");
+            } catch (IOException e) {
+                throw new SQLException("Failed to load CSV: " + filePath, e);
+            }
+
+            // Clear existing NPCs
+            conn.prepareStatement("DELETE FROM npc").executeUpdate();
+
+            // Prepare batch‐insert into npc table
+            PreparedStatement stmt = conn.prepareStatement(
+                "INSERT INTO npc (npc_id, name, dialogue, room_id) VALUES (?, ?, ?, ?)"
+            );
+
+            for (String[] row : records) {
+                int npcId    = Integer.parseInt(row[0].trim());
+                String name  = row[1].trim();
+                String dialog= row[2].trim();
+                int roomId   = Integer.parseInt(row[3].trim());
+
+                stmt.setInt(1, npcId);
+                stmt.setString(2, name);
+                stmt.setString(3, dialog);
+                stmt.setInt(4, roomId);
+                stmt.addBatch();
+            }
+
+            stmt.executeBatch();
+            return null;
+        });
+    }
  
     @Override
     public void transferItem(int instanceId, String fromType, int fromId, String toType, int toId) {
@@ -384,6 +433,34 @@ public class DerbyGameDatabase implements IDatabase {
             }
 
             return items;
+        });
+    }
+    
+    public List<NPC> loadAllNPCs() {
+        return executeTransaction(conn -> {
+            List<NPC> npcs = new ArrayList<>();
+
+            // Fetch every NPC definition
+            PreparedStatement stmt = conn.prepareStatement(
+                "SELECT name, dialogue, room_id FROM npc"
+            );
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                String name     = rs.getString("name");
+                String dialogue = rs.getString("dialogue");
+                int roomId      = rs.getInt("room_id");
+
+                // Construct the NPC
+                NPC npc = new NPC(name, dialogue);
+                // (we’ll attach it to rooms in GameEngine using roomId)
+                // you may want to add a setter on NPC to store roomId:
+                // npc.setRoomId(roomId);
+
+                npcs.add(npc);
+            }
+
+            return npcs;
         });
     }
 
