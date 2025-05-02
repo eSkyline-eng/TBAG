@@ -8,6 +8,7 @@ import edu.ycp.cs320.tbag.model.ItemLocation;
 import edu.ycp.cs320.tbag.model.Player;
 import edu.ycp.cs320.tbag.model.Room;
 import edu.ycp.cs320.tbag.model.NPC;
+import edu.ycp.cs320.tbag.model.Enemy;
 
 
 public interface IDatabase {
@@ -17,7 +18,8 @@ public interface IDatabase {
 	int getPlayerRoomId();
 	void resetGameData();
 	void transferItem(int itemId, String fromType, int fromId, String toType, int toId);
-
+	
+	
 	List<ItemLocation> getItemsAtLocation(String locationType, int locationId);
 	List<ItemLocation> loadAllItemLocations();
 	Map<Integer, Item> loadItemDefinitions();
@@ -26,5 +28,7 @@ public interface IDatabase {
 	
 	void loadNPCsFromCSV(String filePath);
 	List<NPC> loadAllNPCs();
+	void loadEnemyFromCSV(String filePath);
+	List<Enemy> loadAllEnemies();
 
 }

@@ -19,6 +19,7 @@ import edu.ycp.cs320.tbag.model.Player;
 import edu.ycp.cs320.tbag.model.Room;
 import edu.ycp.cs320.tbag.util.CSVLoader;
 import edu.ycp.cs320.tbag.model.NPC;
+import edu.ycp.cs320.tbag.model.Enemy;
 
 import java.util.Properties;
 import java.io.FileInputStream;
@@ -62,6 +63,12 @@ public class DerbyGameDatabase implements IDatabase {
     		
     		// Load connections from connection.csv
             db.loadConnectionsFromCSV("WebContent/CSV/connections.csv");
+            
+            // Load NPCs from npcs.csv (add this line)
+            db.loadNPCsFromCSV("WebContent/CSV/npcs.csv");
+
+            // Load enemies from enemies.csv (add this line)
+            db.loadEnemyFromCSV("WebContent/CSV/enemy.csv");
 
     		System.out.println("Database successfully initialized with items.");
     	} catch (Exception e) {
@@ -147,6 +154,22 @@ public class DerbyGameDatabase implements IDatabase {
             } catch(SQLException e) {
             	if (!"X0Y32".equals(e.getSQLState())) throw e;
             }
+            try {
+                conn.prepareStatement(
+                    "CREATE TABLE enemy (" +
+                    "enemy_id INT PRIMARY KEY, " +
+                    "name VARCHAR(100), " +
+                    "room_id INT REFERENCES rooms(room_id), " +
+                    "health INT, " +
+                    "attack INT, " +
+                    "encounter DOUBLE, " +
+                    "runAway DOUBLE, " +
+                    "dialogue1 VARCHAR(250)" +
+                    ")"
+                ).executeUpdate();
+            } catch(SQLException e) {
+                if (!"X0Y32".equals(e.getSQLState())) throw e;
+            }
 
 
             System.out.println("Tables created (or already existed).");
@@ -159,16 +182,28 @@ public class DerbyGameDatabase implements IDatabase {
     public void resetGameData() {
     	executeTransaction(conn -> {
     		// Clear tables
-    		conn.prepareStatement("DELETE FROM item_instances").executeUpdate();
+            conn.prepareStatement("DELETE FROM item_instances").executeUpdate();
             conn.prepareStatement("DELETE FROM item_definitions").executeUpdate();
+            //conn.prepareStatement("DELETE FROM rooms").executeUpdate();
             conn.prepareStatement("DELETE FROM player").executeUpdate();
+            conn.prepareStatement("DELETE FROM enemy").executeUpdate();
+            conn.prepareStatement("DELETE FROM connections").executeUpdate();
+            conn.prepareStatement("DELETE FROM npc").executeUpdate();
+
     		return null;
     	});
 
     	// Reload data from CSVs
     	loadItemDefinitionsFromCSV("WebContent/CSV/items.csv");
+    	//loadRoomsFromCSV("WebContent/CSV/rooms.csv");
     	loadRoomItemsFromCSV("WebContent/CSV/room_items.csv");
-
+    	loadConnectionsFromCSV("WebContent/CSV/connections.csv");
+    	loadNPCsFromCSV("Webcontent/CSV/npcs.csv");
+    	loadEnemyFromCSV("WebContent/CSV/enemy.csv");
+    	
+    	
+    	
+    	
     	// Recreate default player
     	savePlayerState(100, 1);  // HP = 100, room ID = 1
     }
@@ -302,10 +337,10 @@ public class DerbyGameDatabase implements IDatabase {
     
     public void loadRoomsFromCSV(String filePath) {
         executeTransaction(conn -> {
-        	List<String[]> roomRecords;
-        	try {
-        		roomRecords = CSVLoader.loadCSV(filePath, "\\|");
-        	} catch (IOException e) {
+            List<String[]> roomRecords;
+            try {
+                roomRecords = CSVLoader.loadCSV(filePath, "\\|");
+            } catch (IOException e) {
                 throw new SQLException("Failed to load CSV: " + filePath, e);
             }
 
@@ -316,12 +351,33 @@ public class DerbyGameDatabase implements IDatabase {
             PreparedStatement stmt = conn.prepareStatement(
                 "INSERT INTO rooms (room_id, name, long_description) VALUES (?, ?, ?)"
             );
+
             for (String[] record : roomRecords) {
-                stmt.setInt(1, Integer.parseInt(record[0].trim()));
-                stmt.setString(2, record[1].trim());
-                stmt.setString(3, record[2].trim());
-                stmt.addBatch();
+                try {
+                    int roomId = Integer.parseInt(record[0].trim());
+                    String roomName = record[1].trim();
+                    String description = record[2].trim();
+                    System.out.println("Inserting room: " + roomId + " - " + roomName);
+                    // Check for data integrity
+                    if (roomName.isEmpty() || description.isEmpty()) {
+                        throw new IllegalArgumentException("Room name or description cannot be empty.");
+                    }
+
+                    stmt.setInt(1, roomId);
+                    stmt.setString(2, roomName);
+                    stmt.setString(3, description);
+                    stmt.addBatch();
+                } catch (NumberFormatException e) {
+                    // Log or handle invalid roomId format
+                    System.err.println("Invalid room ID in CSV: " + record[0]);
+                } catch (IllegalArgumentException e) {
+                    // Handle empty room name/description
+                    System.err.println("Invalid room data: " + record[1] + " - " + record[2]);
+                }
+                
+                
             }
+            
             stmt.executeBatch();
             return null;
         });
@@ -377,6 +433,8 @@ public class DerbyGameDatabase implements IDatabase {
                 String name  = row[1].trim();
                 String dialog= row[2].trim();
                 int roomId   = Integer.parseInt(row[3].trim());
+                
+                
 
                 stmt.setInt(1, npcId);
                 stmt.setString(2, name);
@@ -389,6 +447,61 @@ public class DerbyGameDatabase implements IDatabase {
             return null;
         });
     }
+	
+	public void loadEnemyFromCSV(String filePath) {
+		
+		
+		executeTransaction(conn -> {
+		    List<String[]> records;
+		    try {
+		        // Read enemy definitions: enemy_id | name | room_id | health | attack | encounter | runAway | dialogue1 | dialogue2 | dialogue3
+		        records = CSVLoader.loadCSV(filePath, "\\|");
+		    } catch (IOException e) {
+		        throw new SQLException("Failed to load CSV: " + filePath, e);
+		    }
+
+		    // Clear existing enemies
+		    try (PreparedStatement deleteStmt = conn.prepareStatement("DELETE FROM enemy")) {
+		        deleteStmt.executeUpdate();
+		    }
+
+		    // Prepare batch-insert into enemy table
+		    try (PreparedStatement stmt = conn.prepareStatement(
+		        "INSERT INTO enemy (enemy_id, name, room_id, health, attack, encounter, runAway, dialogue1) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")) {
+
+		    	for (String[] row : records) {
+		    	    // Prepare the values
+		    	    int enemyId = Integer.parseInt(row[0].trim());
+		    	    String name = row[1].trim();
+		    	    int roomId = Integer.parseInt(row[2].trim());
+		    	    int health = Integer.parseInt(row[3].trim());
+		    	    int attack = Integer.parseInt(row[4].trim());
+		    	    double encounter = Double.parseDouble(row[5].trim());
+		    	    double runAway = Double.parseDouble(row[6].trim());
+		    	    String dialogue1 =  row[7].trim();
+
+		    	    // Log the data
+		    	    System.out.println("Inserting enemy: " + enemyId + ", " + name + ", " + roomId + ", " + health + ", " + attack + ", " + encounter + ", " + runAway + ", " + dialogue1);
+
+		    	    stmt.setInt(1, enemyId);
+		    	    stmt.setString(2, name);
+		    	    stmt.setInt(3, roomId);
+		    	    stmt.setInt(4, health);
+		    	    stmt.setInt(5, attack);
+		    	    stmt.setDouble(6, encounter);
+		    	    stmt.setDouble(7, runAway);
+		    	    stmt.setString(8, dialogue1);
+
+		    	    stmt.addBatch();
+		    	}
+
+		        stmt.executeBatch();
+		    }
+
+		    return null;
+		});
+	}
+    
  
     @Override
     public void transferItem(int instanceId, String fromType, int fromId, String toType, int toId) {
@@ -452,7 +565,7 @@ public class DerbyGameDatabase implements IDatabase {
                 int roomId      = rs.getInt("room_id");
 
                 // Construct the NPC
-                NPC npc = new NPC(name, dialogue);
+                NPC npc = new NPC(name, dialogue, roomId);
                 // (we’ll attach it to rooms in GameEngine using roomId)
                 // you may want to add a setter on NPC to store roomId:
                 // npc.setRoomId(roomId);
@@ -462,8 +575,33 @@ public class DerbyGameDatabase implements IDatabase {
 
             return npcs;
         });
+ 
     }
+    
+    public List<Enemy> loadAllEnemies() {
+        return executeTransaction(conn -> {
+            List<Enemy> enemies = new ArrayList<>();
 
+            // Fetch all enemy definitions from the enemy table
+            PreparedStatement stmt = conn.prepareStatement("SELECT * FROM enemy");
+            ResultSet rs = stmt.executeQuery();
+
+            while (rs.next()) {
+                int enemyId      = rs.getInt("enemy_id");
+                String name      = rs.getString("name");
+                int roomId       = rs.getInt("room_id");
+                int health       = rs.getInt("health");
+                int attack       = rs.getInt("attack");
+                double encounter = rs.getDouble("encounter");
+                double runAway   = rs.getDouble("runAway");
+                String dialogue1 = rs.getString("dialogue1");
+                Enemy enemy = new Enemy(enemyId, name, roomId, health, attack, encounter, runAway, dialogue1);
+                
+                enemies.add(enemy);
+            }
+            return enemies;
+        });
+    }
 
     public List<ItemLocation> loadAllItemLocations() {
         return executeTransaction(conn -> {
@@ -520,6 +658,7 @@ public class DerbyGameDatabase implements IDatabase {
                 Room room = new Room(roomId, name, description);
                 roomMap.put(roomId, room);
             }
+            
             return roomMap;
         });
     }
@@ -592,4 +731,6 @@ public class DerbyGameDatabase implements IDatabase {
     public static void main(String[] args) {
         new DerbyGameDatabase().createTables();
     }
+
+
 }

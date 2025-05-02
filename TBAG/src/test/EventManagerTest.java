@@ -121,7 +121,7 @@ public class EventManagerTest {
 
     @Test
     public void testNPCInteraction() {
-        NPC npc = new NPC("Joe", "Hello there!");
+        NPC npc = new NPC("Joe", "Hello there!", 2);
         assertEquals("Hello there!", npc.talk());
         assertEquals("Joe", npc.getName());
     }

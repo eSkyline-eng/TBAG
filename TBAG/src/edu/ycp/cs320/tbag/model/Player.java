@@ -7,6 +7,8 @@ import java.util.Set;
 import edu.ycp.cs320.tbag.ending.Achievement;
 
 public class Player extends Character {
+	private int attack = 10;
+	private int health = 100;
     private int time; // Player-specific property
     private Room currentRoom; // The room the player is currently in
     private Map<String, Achievement> achievements = new HashMap<>();
@@ -67,4 +69,30 @@ public class Player extends Character {
     public String getInventoryString() {
         return getInventory().getInventoryString();
     }
-}
+    
+    //player attacks
+    public int getAttack() {
+        return attack;
+    }
+    public void setAttack(int attack) {
+        this.attack = attack;
+    }
+  
+  
+    public int getHealth() {
+        return health;
+    }
+  
+    public void setHealth(int health) {
+    	this.health = health;
+    }
+  
+  
+    //Used to make the player take damage from enemies
+    public void takeDamage(int amount) {
+        health -= amount;
+        if (health < 0) {
+            health = 0;
+        }
+    }
+ }

@@ -21,6 +21,7 @@ public class Room {
     private List<Item> items;              // Items present in this room
     private List<NPC> npcs;
     private List<Event> events; 				// Adds event to each room
+    private List<Enemy> enemy;
     
     /**
      * Constructs a new Room with the given ID, name, and long description.
@@ -37,6 +38,7 @@ public class Room {
         this.items = new ArrayList<>();
         this.npcs = new ArrayList<>();
         this.events = new ArrayList<>();
+        this.enemy = new ArrayList<>();
     }
     
     /**
@@ -205,4 +207,32 @@ public class Room {
         }
         return null;
     }
+    
+    /**
+     * Adds a Enemy to this room.
+     *
+     * @param enemy the enemy to add
+     */
+    public void addEnemy(Enemy enemies) {
+        enemy.add(enemies);
+    }
+    
+    public boolean removeEnemy(Enemy enemies) {
+        return enemy.remove(enemies);  // Removes the given Enemy from the room's Enemy list
+    }
+    
+    public Enemy getEnemyByName(String enemyName) {
+        for (Enemy enemy : enemy) {
+            if (enemy.getName().trim().equalsIgnoreCase(enemyName.trim())) {
+                return enemy;
+            }
+        }
+        return null;
+    }
+    
+    public List<Enemy> getEnemies() {
+        return enemy;
+    }
 }
+
+

@@ -5,10 +5,11 @@ public class NPC extends Character {
     private String dialogue; // What the NPC says when spoken to
     private int roomId;
 
-    public NPC(String name, String dialogue) {
+    public NPC(String name, String dialogue, int roomId) {
         super(); // Initialize inherited attributes (like health and inventory)
         this.name = name;
         this.dialogue = dialogue;
+        this.roomId = roomId;
     }
 
     // Getters and setters

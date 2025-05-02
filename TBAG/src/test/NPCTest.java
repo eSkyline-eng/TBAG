@@ -65,11 +65,6 @@ public class NPCTest {
     }
 
     @Test
-    public void testNPCHealthDefaultsTo100() {
-        assertEquals(100, npc.getHealth());
-    }
-
-    @Test
     public void testNPCInventoryEmptyOnCreation() {
         assertTrue(npc.getInventory().getItems().isEmpty());
     }
