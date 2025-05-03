@@ -8,6 +8,8 @@ import edu.ycp.cs320.tbag.model.ItemLocation;
 import edu.ycp.cs320.tbag.model.Player;
 import edu.ycp.cs320.tbag.model.Room;
 import edu.ycp.cs320.tbag.model.NPC;
+import edu.ycp.cs320.tbag.ending.Achievement;
+import edu.ycp.cs320.tbag.events.Event;
 import edu.ycp.cs320.tbag.model.Enemy;
 
 
@@ -25,6 +27,13 @@ public interface IDatabase {
 	Map<Integer, Item> loadItemDefinitions();
 	Map<Integer, Room> loadRooms();
 	void loadConnections(Map<Integer, Room> roomMap);
+	
+	List<Event> loadAllEvents();
+    
+    void addAchievement(int playerId, Achievement Achievement);
+    void removeAchievement(String id);
+    List<Achievement> getAchievementsForPlayer(int playerId);
+
 	
 	void loadNPCsFromCSV(String filePath);
 	List<NPC> loadAllNPCs();

@@ -5,9 +5,21 @@ import edu.ycp.cs320.tbag.db.persist.*;
 import edu.ycp.cs320.tbag.util.CSVLoader;
 import edu.ycp.cs320.tbag.events.Damage;
 import edu.ycp.cs320.tbag.events.Dialogue;
+import edu.ycp.cs320.tbag.events.Event;
 import edu.ycp.cs320.tbag.events.EventManager;
 import edu.ycp.cs320.tbag.db.persist.DatabaseProvider;
 import edu.ycp.cs320.tbag.db.persist.IDatabase;
+import edu.ycp.cs320.tbag.ending.EndingCondition;
+import edu.ycp.cs320.tbag.ending.KickedOutEnding;
+import edu.ycp.cs320.tbag.ending.LotteryEnding;
+import edu.ycp.cs320.tbag.ending.MazonCEOEnding;
+import edu.ycp.cs320.tbag.ending.MazonDriverEnding;
+import edu.ycp.cs320.tbag.ending.McRonaldsEnding;
+import edu.ycp.cs320.tbag.ending.RatKingEnding;
+import edu.ycp.cs320.tbag.ending.WallMartEnding;
+import edu.ycp.cs320.tbag.ending.YCPEnding;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +33,12 @@ public class GameEngine {
     private Map<Integer, Item> itemMap;   // Maps itemID to Item objects
     private boolean inCombat = false;
     private Enemy currentEnemy;
+    private boolean pendingEndingPrompt = false;
+    private EndingCondition pendingEnding = null;
+    private List<EndingCondition> endings = new ArrayList<>();
+    private String endingDescription;
+
+
 
 
     public GameEngine() {
@@ -29,6 +47,9 @@ public class GameEngine {
         itemMap = new HashMap<>();
         eventManager = new EventManager();
         DatabaseProvider.setInstance(new DerbyGameDatabase());
+        
+        endings = getAllEndingConditions();
+        
         initGame();
     }
     
@@ -72,6 +93,15 @@ public class GameEngine {
             }
         }
         
+        for (Event event : db.loadAllEvents()) {
+            int roomId = event.getRoomId();
+            Room room = roomMap.get(roomId);
+            if (room != null) {
+                room.addEvent(event);
+            }
+        }
+
+        
         currentRoom = roomMap.get(1);
         
         // initialize the player and set their starting room.
@@ -82,6 +112,7 @@ public class GameEngine {
         	player.setCurrentRoom(currentRoom);
         	db.savePlayerState(player.getHealth(), currentRoom.getId());
         } else { // if user already exists
+        	player.loadAchievements(db.getAchievementsForPlayer(1));
         	int roomId = db.getPlayerRoomId();
         	currentRoom = roomMap.get(roomId);
         	player.setCurrentRoom(currentRoom);
@@ -109,36 +140,6 @@ public class GameEngine {
             }
         }
         
-        try {
-            // Load room events from CSV (events.csv format: roomID | eventType | description | probability | dialogue)
-            List<String[]> eventRecords = CSVLoader.loadCSV("WebContent/CSV/events.csv", "\\|");
-            for (String[] record : eventRecords) {
-            	int roomId = Integer.parseInt(record[0].trim());
-                String eventType = record[1].trim();
-                String description = record[2].trim();
-                double probability = Double.parseDouble(record[3].trim());
-                String dialogue = record[4].trim();
-                int dam = Integer.parseInt(record[5].trim());
-                Room room = roomMap.get(roomId);
-                if (room != null) {
-                    if (eventType.equalsIgnoreCase("Dialogue")) {
-                        room.addEvent(new Dialogue(probability, dialogue));
-                    } else if (eventType.equalsIgnoreCase("Damage")) {
-                    	room.addEvent(new Damage(probability, dialogue, dam));
-                    }
-                }
-            }
-            
-        } catch (Exception e) {
-            transcript.append("Error loading game data: ").append(e.getMessage()).append("\n");
-        }
-        
-        
-      	
-        
-      	
-
-        
         // Append starting room details to the transcript.
         transcript.append(currentRoom.getLongDescription()).append("\n");
         transcript.append(currentRoom.getRoomItemsString()).append("\n");
@@ -162,6 +163,27 @@ public class GameEngine {
         String output = "";
         command = command.trim().toLowerCase();
 
+        if (pendingEndingPrompt) {
+        	if (command.equals("yes")) {
+        	    pendingEndingPrompt = false;
+        	    player.unlockAchievement(pendingEnding.getClass().getSimpleName(), pendingEnding.getEndingDescription());
+        	    this.endingDescription = pendingEnding.getEndingDescription();
+
+        	    transcript.append("> ").append(command).append("\n");
+        	    transcript.append(pendingEnding.getEndingDescription()).append("\n");
+        	    return "__ENDING_ACCEPTED__";
+        	} else if (command.equals("no")) {
+                pendingEndingPrompt = false;
+                String msg = "You declined the job. Your journey continues...";
+                transcript.append("> ").append(command).append("\n").append(msg).append("\n");
+                return msg;
+            } else {
+                String msg = "Do you accept the job offer? Please answer 'yes' or 'no'.";
+                transcript.append("> ").append(command).append("\n").append(msg).append("\n");
+                return msg;
+            }
+        }
+        
         if (inCombat) {
             if (command.startsWith("attack")) {
                 if (currentEnemy != null) {
@@ -248,6 +270,23 @@ public class GameEngine {
                         if (!eventOutput.isEmpty()) {
                             sb.append("\n\n").append(eventOutput);
                         }
+                    }
+                    
+                    for (EndingCondition ending : endings) {
+                        if (ending.isMet(player)) {
+                            if (!player.hasAchievement(ending.getClass().getSimpleName())) {
+                                pendingEnding = ending;
+                                pendingEndingPrompt = true;
+                                String prompt = "You have been offered a position!\n" + ending.getEndingDescription() + "\nDo you accept the job? (yes/no)";
+                                transcript.append("> ").append(command).append("\n");
+                                transcript.append(prompt).append("\n");
+                                return prompt;
+                            }
+                        }
+                    }
+                    
+                    if (currentRoom.getName() == "Neighborhood") {
+                    	player.unlockAchievement("Leave_house", "TESTING");
                     }
 
                     output = sb.toString();
@@ -351,6 +390,27 @@ public class GameEngine {
     
     public Player getPlayer() {
         return player;
+    }
+
+    private List<EndingCondition> getAllEndingConditions() {
+        List<EndingCondition> endings = new ArrayList<>();
+        endings.add(new McRonaldsEnding());
+        endings.add(new WallMartEnding());
+        endings.add(new MazonDriverEnding());
+        endings.add(new MazonCEOEnding());
+        endings.add(new KickedOutEnding());
+        endings.add(new LotteryEnding());
+        endings.add(new YCPEnding());
+        endings.add(new RatKingEnding());
+        return endings;
+    }
+    
+    public void setEndingDescription(String description) {
+        this.endingDescription = description;
+    }
+
+    public String getEndingDescription() {
+        return endingDescription;
     }
 
 }

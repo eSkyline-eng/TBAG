@@ -18,6 +18,10 @@ public class GameController {
         return gameEngine.getTranscript();
     }
     
+    public GameEngine getGameEngine() {
+        return gameEngine;
+    }
+
     /**
      * Retrieves the current Player from the GameEngine.
      *

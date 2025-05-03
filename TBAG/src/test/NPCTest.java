@@ -14,7 +14,7 @@ public class NPCTest {
     @BeforeEach
     public void setUp() {
         item = new Item(101, "Magic Key", "Unlocks hidden doors", 0.5, 50.0);
-        npc = new NPC("Frank", "Welcome to the city, traveler!");
+        npc = new NPC("Frank", "Welcome to the city, traveler!",1);
     }
 
     // --- Item Tests ---

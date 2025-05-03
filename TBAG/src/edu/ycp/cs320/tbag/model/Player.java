@@ -1,9 +1,12 @@
 package edu.ycp.cs320.tbag.model;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import edu.ycp.cs320.tbag.db.persist.DatabaseProvider;
+import edu.ycp.cs320.tbag.db.persist.IDatabase;
 import edu.ycp.cs320.tbag.ending.Achievement;
 
 public class Player extends Character {
@@ -42,12 +45,34 @@ public class Player extends Character {
     
     // Achievements
     public void unlockAchievement(String id, String description) {
-        achievements.put(id, new Achievement(id, description, true));
+        if (!achievements.containsKey(id)) {
+            Achievement achievement = new Achievement(id, description, true);
+            achievements.put(id, achievement);
+           
+            IDatabase db = DatabaseProvider.getInstance();
+            int playerId = 1;
+            db.addAchievement(playerId, achievement);
+        }
+    }
+
+    public void removeAchievement(String id) {
+        if (achievements.containsKey(id)) {           
+            IDatabase db = DatabaseProvider.getInstance();
+            db.removeAchievement(id);
+            achievements.remove(id);
+        }
+    }
+   
+    public void loadAchievements(List<Achievement> achievementsList) {
+        for (Achievement achievement : achievementsList) {
+            this.achievements.put(achievement.getId(), achievement);
+        }
     }
 
     public boolean hasAchievement(String id) {
         return achievements.containsKey(id) && achievements.get(id).isCompleted();
     }
+
 
     public Set<String> getAchievementIDs() {
         return achievements.keySet();
@@ -55,6 +80,23 @@ public class Player extends Character {
 
     public Map<String, Achievement> getAchievements() {
         return achievements;
+    }
+    
+    public String getFormattedAchievements() {
+        if (achievements == null || achievements.isEmpty()) {
+            return "None";
+        }
+
+        StringBuilder sb = new StringBuilder("<ul>");
+        for (Achievement a : achievements.values()) {
+            sb.append("<li>").append(a.getDescription());
+            if (a.isCompleted()) {
+                sb.append(" ✅");
+            }
+            sb.append("</li>");
+        }
+        sb.append("</ul>");
+        return sb.toString();
     }
     
     // Inventory management (inherited from Character)
@@ -68,6 +110,15 @@ public class Player extends Character {
 
     public String getInventoryString() {
         return getInventory().getInventoryString();
+    }
+    
+    public boolean checkInventory(String item) {
+        String inventory = getInventoryString();
+        if (inventory.contains(item)) {
+            return true;
+        } else {
+            return false;
+        }
     }
     
     //player attacks

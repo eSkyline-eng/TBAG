@@ -46,12 +46,23 @@ public class GameServlet extends HttpServlet {
             session.setAttribute("gameController", controller);
         }
         
+        req.setAttribute("player", controller.getPlayer());
+        
         // Retrieve the command entered by the user.
         String command = req.getParameter("command");
         if (command != null && !command.trim().isEmpty()) {
-            controller.processCommand(command);
+        	String result = controller.processCommand(command);
+        	
+            if (result.equals("__ENDING_ACCEPTED__")) {
+            	session.setAttribute("player", controller.getPlayer());
+                session.setAttribute("endingDescription", controller.getGameEngine().getEndingDescription());
+                req.getRequestDispatcher("/_view/ending.jsp").forward(req, resp);
+                return;
+            }
+            
+            req.setAttribute("gameOutput", result);
         }
-        
+       
         // Forward to the game JSP to update the view (transcript, inventory, etc.)
         req.getRequestDispatcher("/_view/game.jsp").forward(req, resp);
     }

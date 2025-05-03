@@ -19,6 +19,10 @@ import edu.ycp.cs320.tbag.model.Player;
 import edu.ycp.cs320.tbag.model.Room;
 import edu.ycp.cs320.tbag.util.CSVLoader;
 import edu.ycp.cs320.tbag.model.NPC;
+import edu.ycp.cs320.tbag.ending.Achievement;
+import edu.ycp.cs320.tbag.events.Damage;
+import edu.ycp.cs320.tbag.events.Dialogue;
+import edu.ycp.cs320.tbag.events.Event;
 import edu.ycp.cs320.tbag.model.Enemy;
 
 import java.util.Properties;
@@ -69,6 +73,10 @@ public class DerbyGameDatabase implements IDatabase {
 
             // Load enemies from enemies.csv (add this line)
             db.loadEnemyFromCSV("WebContent/CSV/enemy.csv");
+            
+            // Load events from events.csv
+            db.loadEventsFromCSV("WebContent/CSV/events.csv");
+
 
     		System.out.println("Database successfully initialized with items.");
     	} catch (Exception e) {
@@ -86,7 +94,7 @@ public class DerbyGameDatabase implements IDatabase {
             try {
                 conn.prepareStatement(
                     "CREATE TABLE player (" +
-                    "id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY, " +
+                    "id INT PRIMARY KEY, " +
                     "hp INT, " +
                     "current_room_id INT)"
                 ).executeUpdate();
@@ -170,6 +178,38 @@ public class DerbyGameDatabase implements IDatabase {
             } catch(SQLException e) {
                 if (!"X0Y32".equals(e.getSQLState())) throw e;
             }
+            try {
+                conn.prepareStatement(
+                    "CREATE TABLE achievements (" +
+                    "id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY, " +
+                    "player_id INT, " +
+                    "achievement_id VARCHAR(50), " +
+                    "description VARCHAR(1000), " +
+                    "completed BOOLEAN, " +
+                    "FOREIGN KEY (player_id) REFERENCES player(id))"
+                ).executeUpdate();
+            } catch (SQLException e) {
+                if (!"X0Y32".equals(e.getSQLState())) {
+                    throw e;
+                }
+            }
+            try {
+                conn.prepareStatement(
+                    "CREATE TABLE events (" +
+                    "id INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY, " +
+                    "room_id INT, " +
+                    "event_type VARCHAR(50), " +
+                    "description VARCHAR(1000), " +
+                    "probability DOUBLE, " +
+                    "dialogue_text VARCHAR(1000), " +
+                    "damage INT, " +
+                    "FOREIGN KEY (room_id) REFERENCES rooms(room_id))"
+                ).executeUpdate();
+            } catch (SQLException e) {
+                if (!"X0Y32".equals(e.getSQLState())) {
+                    throw e;
+                }
+            }
 
 
             System.out.println("Tables created (or already existed).");
@@ -182,6 +222,7 @@ public class DerbyGameDatabase implements IDatabase {
     public void resetGameData() {
     	executeTransaction(conn -> {
     		// Clear tables
+    		conn.prepareStatement("DELETE FROM achievements").executeUpdate();
             conn.prepareStatement("DELETE FROM item_instances").executeUpdate();
             conn.prepareStatement("DELETE FROM item_definitions").executeUpdate();
             //conn.prepareStatement("DELETE FROM rooms").executeUpdate();
@@ -189,6 +230,7 @@ public class DerbyGameDatabase implements IDatabase {
             conn.prepareStatement("DELETE FROM enemy").executeUpdate();
             conn.prepareStatement("DELETE FROM connections").executeUpdate();
             conn.prepareStatement("DELETE FROM npc").executeUpdate();
+
 
     		return null;
     	});
@@ -211,15 +253,29 @@ public class DerbyGameDatabase implements IDatabase {
     
     public void savePlayerState(int hp, int roomId) {
     	executeTransaction(conn -> {
-    		PreparedStatement delete = conn.prepareStatement("DELETE FROM player");
-    		delete.executeUpdate();
+    		// Check if player already exists
+    		PreparedStatement checkStmt = conn.prepareStatement("SELECT id FROM player WHERE id = 1");
+    		ResultSet rs = checkStmt.executeQuery();
 
-    		PreparedStatement insert = conn.prepareStatement(
-    			"INSERT INTO player (hp, current_room_id) VALUES (?, ?)"
-    		);
-    		insert.setInt(1, hp);
-    		insert.setInt(2, roomId);
-    		insert.executeUpdate();
+    		if (rs.next()) {
+    			// Update if exists
+    			PreparedStatement updateStmt = conn.prepareStatement(
+    				"UPDATE player SET hp = ?, current_room_id = ? WHERE id = 1"
+    			);
+    			updateStmt.setInt(1, hp);
+    			updateStmt.setInt(2, roomId);
+    			updateStmt.executeUpdate();
+    		} else {
+    			// Insert with fixed id = 1
+    			PreparedStatement insertStmt = conn.prepareStatement(
+    				"INSERT INTO player (id, hp, current_room_id) VALUES (?, ?, ?)"
+    			);
+    			insertStmt.setInt(1, 1); // Force ID = 1
+    			insertStmt.setInt(2, hp);
+    			insertStmt.setInt(3, roomId);
+    			insertStmt.executeUpdate();
+    		}
+
     		return null;
     	});
     }
@@ -265,6 +321,67 @@ public class DerbyGameDatabase implements IDatabase {
     		return 1; // fallback to room 1 if not found
     	});
     }
+    
+    public void loadEventsFromCSV(String filePath) {
+        executeTransaction(conn -> {
+            List<String[]> events;
+            try {
+                events = CSVLoader.loadCSV(filePath, "\\|");
+            } catch (IOException e) {
+                throw new SQLException("Failed to load CSV: " + filePath, e);
+            }
+            conn.prepareStatement("DELETE FROM events").executeUpdate();
+            
+            PreparedStatement stmt = conn.prepareStatement(
+                "INSERT INTO events (room_id, event_type, description, probability, dialogue_text, damage) VALUES (?, ?, ?, ?, ?, ?)"    
+            );
+            
+            for (String[] row : events) {
+                stmt.setInt(1, Integer.parseInt(row[0].trim()));
+                stmt.setString(2, row[1].trim());
+                stmt.setString(3, row[2].trim());
+                stmt.setDouble(4, Double.parseDouble(row[3].trim()));
+                stmt.setString(5, row[4].trim());
+                stmt.setInt(6, Integer.parseInt(row[5].trim()));
+                stmt.addBatch();
+            }
+            
+            stmt.executeBatch();
+            return null;
+        });
+    }
+
+    public List<Event> loadAllEvents() {
+        return executeTransaction(conn -> {
+            List<Event> events = new ArrayList<>();
+            PreparedStatement stmt = conn.prepareStatement("SELECT * FROM events");
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                String eventType = rs.getString("event_type");
+                double probability = rs.getDouble("probability");
+                String dialogue = rs.getString("dialogue_text");
+                int damage = rs.getInt("damage");
+                int roomId = rs.getInt("room_id");
+
+                Event event = null;
+
+                if (eventType.equalsIgnoreCase("dialogue")) {
+                    event = new Dialogue(probability, dialogue);
+                } else if (eventType.equalsIgnoreCase("damage")) {
+                    event = new Damage(probability, dialogue, damage);
+                } else {
+                    System.err.println("Unknown event type: " + eventType);
+                }
+
+                if (event != null) {
+                    event.setRoomId(roomId);
+                    events.add(event);
+                }
+            }
+            return events;
+        });
+    }
+
     
     public void loadItemDefinitionsFromCSV(String filePath) {
         executeTransaction(conn -> {
@@ -502,8 +619,49 @@ public class DerbyGameDatabase implements IDatabase {
 		});
 	}
     
- 
-    @Override
+	public void addAchievement(int playerId, Achievement achievement) {
+        executeTransaction(conn -> {
+            PreparedStatement stmt = conn.prepareStatement(
+                "INSERT INTO achievements (player_id, achievement_id, description, completed) VALUES (?, ?, ?, ?)"
+            );
+            stmt.setInt(1, playerId);
+            stmt.setString(2, achievement.getId());
+            stmt.setString(3, achievement.getDescription());
+            stmt.setBoolean(4, achievement.isCompleted());
+            stmt.executeUpdate();
+            return null;
+        });
+    }
+    public void removeAchievement(String id) {
+        executeTransaction(conn -> {
+            PreparedStatement stmt = conn.prepareStatement("DELETE FROM achievements WHERE achievement_id=?");
+            stmt.setString(1, id);
+            stmt.executeUpdate();
+            
+            return null;
+        });
+    }
+
+    public List<Achievement> getAchievementsForPlayer(int playerId) {
+        return executeTransaction(conn -> {
+            List<Achievement> list = new ArrayList<>();
+            PreparedStatement stmt = conn.prepareStatement(
+                "SELECT achievement_id, description, completed FROM achievements WHERE player_id = ?"
+            );
+            stmt.setInt(1, playerId);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                list.add(new Achievement(
+                    rs.getString("achievement_id"),
+                    rs.getString("description"),
+                    rs.getBoolean("completed")
+                ));
+            }
+            return list;
+        });
+    }
+
+    
     public void transferItem(int instanceId, String fromType, int fromId, String toType, int toId) {
         executeTransaction(conn -> {
             PreparedStatement update = conn.prepareStatement(
@@ -522,7 +680,7 @@ public class DerbyGameDatabase implements IDatabase {
     }
 
 
-    @Override
+    
     public List<ItemLocation> getItemsAtLocation(String locationType, int locationId) {
         return executeTransaction(conn -> {
             List<ItemLocation> items = new ArrayList<>();
