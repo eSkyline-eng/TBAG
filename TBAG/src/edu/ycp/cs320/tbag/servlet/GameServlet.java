@@ -9,6 +9,7 @@ import edu.ycp.cs320.tbag.controller.GameController;
 import edu.ycp.cs320.tbag.db.persist.DatabaseProvider;
 import edu.ycp.cs320.tbag.db.persist.IDatabase;
 import edu.ycp.cs320.tbag.model.GameEngine;
+import edu.ycp.cs320.tbag.ending.LotteryEnding;
 
 @WebServlet("/game")
 public class GameServlet extends HttpServlet {
@@ -55,6 +56,14 @@ public class GameServlet extends HttpServlet {
         	
             if (result.equals("__ENDING_ACCEPTED__")) {
             	session.setAttribute("player", controller.getPlayer());
+                session.setAttribute("endingDescription", controller.getGameEngine().getEndingDescription());
+                req.getRequestDispatcher("/_view/ending.jsp").forward(req, resp);
+                return;
+            }
+            
+            if (LotteryEnding.ACCEPT_CODE.equals(result)) {
+                session = req.getSession();
+                session.setAttribute("player", controller.getPlayer());
                 session.setAttribute("endingDescription", controller.getGameEngine().getEndingDescription());
                 req.getRequestDispatcher("/_view/ending.jsp").forward(req, resp);
                 return;

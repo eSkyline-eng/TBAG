@@ -91,16 +91,67 @@ public class DerbyGameDatabase implements IDatabase {
 
     public void createTables() {
         executeTransaction(conn -> {
-            try {
-                conn.prepareStatement(
-                    "CREATE TABLE player (" +
-                    "id INT PRIMARY KEY, " +
-                    "hp INT, " +
-                    "current_room_id INT)"
-                ).executeUpdate();
-            } catch (SQLException e) {
-                if (!"X0Y32".equals(e.getSQLState())) throw e;
-            }
+        	// --- Upgrade path: add money column if it doesn’t already exist ---
+        	try {
+        	    conn.prepareStatement(
+        	        "ALTER TABLE player ADD COLUMN money INT"
+        	    ).executeUpdate();
+        	    conn.prepareStatement(
+        	        "UPDATE player SET money = 0 WHERE money IS NULL"
+        	    ).executeUpdate();
+        	} catch (SQLException e) {
+        	    String state = e.getSQLState();
+        	    if (!"X0Y32".equals(state) && !"42Y55".equals(state)) {
+        	        throw e;
+        	    }
+        	}
+
+        	// --- Upgrade path: add attack column if it doesn’t already exist ---
+        	try {
+        	    conn.prepareStatement(
+        	        "ALTER TABLE player ADD COLUMN attack INT"
+        	    ).executeUpdate();
+        	    conn.prepareStatement(
+        	        "UPDATE player SET attack = 10 WHERE attack IS NULL"
+        	    ).executeUpdate();
+        	} catch (SQLException e) {
+        	    String state = e.getSQLState();
+        	    if (!"X0Y32".equals(state) && !"42Y55".equals(state)) {
+        	        throw e;
+        	    }
+        	}
+
+        	// --- Upgrade path: add attack_multiplier if it doesn’t already exist ---
+        	try {
+        	    conn.prepareStatement(
+        	        "ALTER TABLE player ADD COLUMN attack_multiplier FLOAT"
+        	    ).executeUpdate();
+        	    conn.prepareStatement(
+        	        "UPDATE player SET attack_multiplier = 1.0 WHERE attack_multiplier IS NULL"
+        	    ).executeUpdate();
+        	} catch (SQLException e) {
+        	    String state = e.getSQLState();
+        	    if (!"X0Y32".equals(state) && !"42Y55".equals(state)) {
+        	        throw e;
+        	    }
+        	}
+
+        	try {
+        	    conn.prepareStatement(
+        	        "CREATE TABLE player (" +
+        	        "id INT PRIMARY KEY, " +
+        	        "hp INT, " +
+        	        "current_room_id INT, " +
+        	        "money INT, " +
+        	        "attack INT, " +
+        	        "attack_multiplier FLOAT" +
+        	        ")"
+        	    ).executeUpdate();
+        	} catch (SQLException e) {
+        	    if (!"X0Y32".equals(e.getSQLState())) {
+        	        throw e;
+        	    }
+        	}
 
             try {
                 conn.prepareStatement(
@@ -210,6 +261,23 @@ public class DerbyGameDatabase implements IDatabase {
                     throw e;
                 }
             }
+            
+            try {
+            	// Only for a fresh DB: insert the starting player with ID = 1
+                conn.prepareStatement(
+                    "INSERT INTO player (id, hp, current_room_id, money, attack, attack_multiplier) " +
+                    "VALUES (1, 100, 1, 0, 10, 1.0)"
+                ).executeUpdate();
+            } catch (SQLException e) {
+                String state = e.getSQLState();
+                // X0Y32 = column already exists, 42Y55 = table doesn't exist,
+                // 23505 = duplicate primary key (player row already seeded)
+                if (!"X0Y32".equals(state)
+                  && !"42Y55".equals(state)
+                  && !"23505".equals(state)) {
+                    throw e;
+                }
+            }
 
 
             System.out.println("Tables created (or already existed).");
@@ -268,11 +336,14 @@ public class DerbyGameDatabase implements IDatabase {
     		} else {
     			// Insert with fixed id = 1
     			PreparedStatement insertStmt = conn.prepareStatement(
-    				"INSERT INTO player (id, hp, current_room_id) VALUES (?, ?, ?)"
+    				"INSERT INTO player (id, hp, current_room_id, money, attack, attack_multiplier) VALUES (?, ?, ?, ?, ?, ?)"
     			);
-    			insertStmt.setInt(1, 1); // Force ID = 1
+    			insertStmt.setInt(1, 1);
     			insertStmt.setInt(2, hp);
     			insertStmt.setInt(3, roomId);
+    			insertStmt.setInt(4, 0);      // starting money
+    			insertStmt.setInt(5, 10);      // base attack
+    			insertStmt.setDouble(6, 1.0);  // default multiplier
     			insertStmt.executeUpdate();
     		}
 
@@ -280,24 +351,36 @@ public class DerbyGameDatabase implements IDatabase {
     	});
     }
     
+    @Override
     public Player loadPlayerState() {
-    	return executeTransaction(conn -> {
-    		PreparedStatement stmt = conn.prepareStatement("SELECT * FROM player");
-    		ResultSet rs = stmt.executeQuery();
+        return executeTransaction(conn -> {
+            PreparedStatement stmt = conn.prepareStatement("SELECT * FROM player");
+            ResultSet rs = stmt.executeQuery();
 
-    		if (rs.next()) {
-    			Player player = new Player();
-    			
-    			player.setHealth(rs.getInt("hp"));
-    			
-    			player.setCurrentRoom(null); 
-    			int playerRoomId = rs.getInt("current_room_id");
-    			
-    			return player;
-    		} else {
-    			return null;
-    		}
-    	});
+            if (rs.next()) {
+                Player player = new Player();
+
+                // *** NEW: pick up the DB id so unlockAchievement() uses a valid key ***
+                player.setId(rs.getInt("id"));
+
+                // Existing fields
+                player.setHealth(rs.getInt("hp"));
+
+                // *** OPTIONAL: if you’ve already added money/attack columns ***
+                player.setMoney ( rs.getInt("money") );
+                
+                player.setAttackMultiplier(rs.getDouble("attack_multiplier"));
+
+                // Restore room
+                int playerRoomId = rs.getInt("current_room_id");
+                // (you’ll still need to hook this back to the Room object in initGame)
+                player.setCurrentRoom(null);
+
+                return player;
+            } else {
+                return null;
+            }
+        });
     }
 
     public void updatePlayerLocation(int roomId) {
@@ -311,6 +394,29 @@ public class DerbyGameDatabase implements IDatabase {
     	});
     }
     
+    @Override
+    public double getPlayerAttackMultiplier(int playerId) {
+        return executeTransaction(conn -> {
+            PreparedStatement stmt = conn.prepareStatement(
+                "SELECT attack_multiplier FROM player WHERE id = ?");
+            stmt.setInt(1, playerId);
+            ResultSet rs = stmt.executeQuery();
+            return (rs.next() ? rs.getDouble("attack_multiplier") : 1.0);
+        });
+    }
+
+    @Override
+    public void updatePlayerAttackMultiplier(int playerId, double multiplier) {
+        executeTransaction(conn -> {
+            PreparedStatement stmt = conn.prepareStatement(
+                "UPDATE player SET attack_multiplier = ? WHERE id = ?");
+            stmt.setDouble(1, multiplier);
+            stmt.setInt(2, playerId);
+            stmt.executeUpdate();
+            return null;
+        });
+    }
+    
     public int getPlayerRoomId() {
     	return executeTransaction(conn -> {
     		PreparedStatement stmt = conn.prepareStatement("SELECT current_room_id FROM player");
@@ -320,6 +426,78 @@ public class DerbyGameDatabase implements IDatabase {
     		}
     		return 1; // fallback to room 1 if not found
     	});
+    }
+    
+ // ----- New player‐money methods -----
+    @Override
+    public int getPlayerMoney(int playerId) {
+        return executeTransaction(conn -> {
+            PreparedStatement stmt = conn.prepareStatement(
+                "SELECT money FROM player WHERE id = ?"
+            );
+            stmt.setInt(1, playerId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("money");
+            }
+            return 0;
+        });
+    }
+
+    @Override
+    public void updatePlayerMoney(int playerId, int newBalance) {
+        executeTransaction(conn -> {
+            PreparedStatement stmt = conn.prepareStatement(
+                "UPDATE player SET money = ? WHERE id = ?"
+            );
+            stmt.setInt(1, newBalance);
+            stmt.setInt(2, playerId);
+            stmt.executeUpdate();
+            return null;
+        });
+    }
+
+    // ----- New player‐attack methods -----
+    @Override
+    public int getPlayerAttack(int playerId) {
+        return executeTransaction(conn -> {
+            PreparedStatement stmt = conn.prepareStatement(
+                "SELECT attack FROM player WHERE id = ?"
+            );
+            stmt.setInt(1, playerId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("attack");
+            }
+            return 0;
+        });
+    }
+
+    @Override
+    public void updatePlayerAttack(int playerId, int newAttack) {
+        executeTransaction(conn -> {
+            PreparedStatement stmt = conn.prepareStatement(
+                "UPDATE player SET attack = ? WHERE id = ?"
+            );
+            stmt.setInt(1, newAttack);
+            stmt.setInt(2, playerId);
+            stmt.executeUpdate();
+            return null;
+        });
+    }
+
+    // ----- New player‐health update method -----
+    @Override
+    public void updatePlayerHealth(int playerId, int newHealth) {
+        executeTransaction(conn -> {
+            PreparedStatement stmt = conn.prepareStatement(
+                "UPDATE player SET hp = ? WHERE id = ?"
+            );
+            stmt.setInt(1, newHealth);
+            stmt.setInt(2, playerId);
+            stmt.executeUpdate();
+            return null;
+        });
     }
     
     public void loadEventsFromCSV(String filePath) {

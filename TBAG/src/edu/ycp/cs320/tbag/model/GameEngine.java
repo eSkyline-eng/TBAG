@@ -9,6 +9,8 @@ import edu.ycp.cs320.tbag.events.Event;
 import edu.ycp.cs320.tbag.events.EventManager;
 import edu.ycp.cs320.tbag.db.persist.DatabaseProvider;
 import edu.ycp.cs320.tbag.db.persist.IDatabase;
+import edu.ycp.cs320.tbag.model.ShopManager;
+import edu.ycp.cs320.tbag.model.ShopItem;
 import edu.ycp.cs320.tbag.ending.EndingCondition;
 import edu.ycp.cs320.tbag.ending.KickedOutEnding;
 import edu.ycp.cs320.tbag.ending.LotteryEnding;
@@ -32,6 +34,8 @@ public class GameEngine {
     private Map<Integer, Room> roomMap;   // Maps roomID to Room objects
     private Map<Integer, Item> itemMap;   // Maps itemID to Item objects
     private boolean inCombat = false;
+    private ShopManager shopManager;
+    private boolean shopMode = false;
     private Enemy currentEnemy;
     private boolean pendingEndingPrompt = false;
     private EndingCondition pendingEnding = null;
@@ -49,6 +53,9 @@ public class GameEngine {
         DatabaseProvider.setInstance(new DerbyGameDatabase());
         
         endings = getAllEndingConditions();
+        
+        // Initialize the gas‐station shop
+        this.shopManager = new ShopManager();
         
         initGame();
     }
@@ -162,6 +169,100 @@ public class GameEngine {
     public String processCommand(String command) {
         String output = "";
         command = command.trim().toLowerCase();
+        
+        // ------------- SHOP MODE HANDLING -------------
+        if (shopMode) {
+            // 1) Echo the command into the transcript
+            transcript.append("> ").append(command).append("\n");
+            
+            StringBuilder out = new StringBuilder();
+            // 2) Handle pending sale (yes/no prompt)
+            if (shopManager.hasPendingSale()) {
+                if (shopManager.handlePendingSale(command, player, out)) {
+                    String result = out.toString();
+                    transcript.append(result);
+                    return result;
+                }
+                // fall through to invalid…
+            }
+
+            String verb  = command.trim();
+            String lower = verb.toLowerCase();
+
+            // HELP
+            if (lower.equals("help")) {
+                out.append(
+                    "shop commands:\n" +
+                    "  list        – show available items (price, name, description)\n" +
+                    "  buy [item]  – purchase if you have enough money\n" +
+                    "  sell [item] – offload items for half their value\n" +
+                    "  exit        – leave the shop\n" +
+                    "  help        – show this menu again\n"
+                );
+                String result = out.toString();
+                transcript.append(result);
+                return result;
+            }
+            // LIST
+            else if (lower.equals("list")) {
+                for (ShopItem item : shopManager.listItems()) {
+                    out.append(String.format(
+                        "$%d %s – %s\n",
+                        item.getPrice(),
+                        item.getName(),
+                        item.getDescription()
+                    ));
+                }
+                String result = out.toString();
+                transcript.append(result);
+                return result;
+            }
+            // BUY
+         // BUY
+            else if (lower.startsWith("buy ")) {
+                String itemName = verb.substring(4).trim();
+
+                // 1) invoke the buy logic (fills `out`)
+                shopManager.initiateBuy(itemName, player, out);
+
+                // 2) grab the text result
+                String result = out.toString().trim();    // trim so ACCEPT_CODE matches exactly
+
+                // 3) check for the lottery‐win code
+                if (LotteryEnding.ACCEPT_CODE.equals(result)) {
+                    // stash the ending description so the servlet can render it
+                    this.endingDescription = new LotteryEnding().getEndingDescription();
+                    return LotteryEnding.ACCEPT_CODE;
+                }
+
+                // 4) normal shop output
+                transcript.append(result).append("\n");
+                return result + "\n";
+            }
+            // SELL
+            // NEW: initiate the sale (sets pendingSaleItem + prompt), confirmation comes next turn
+            else if (lower.startsWith("sell ")) {
+                String itemName = verb.substring(5).trim();
+                shopManager.initiateSell(itemName, player, out);
+                String result = out.toString();
+                transcript.append(result);
+                return result;
+            }
+            // EXIT
+            else if (lower.equals("exit")) {
+                shopMode = false;
+                String roomDesc = currentRoom.getLongDescription() + "\n";
+                transcript.append(roomDesc);
+                return roomDesc;
+            }
+            // INVALID
+            else {
+                String result = "Invalid shop command. Type 'help' for a list of shop commands.\n";
+                transcript.append(result);
+                return result;
+            }
+        }
+        // ------------- END SHOP MODE -------------
 
         if (pendingEndingPrompt) {
         	if (command.equals("yes")) {
@@ -188,12 +289,19 @@ public class GameEngine {
             if (command.startsWith("attack")) {
                 if (currentEnemy != null) {
                     int playerAttack = player.getAttack();
-                    int damageDealt = Math.max(playerAttack, 0);
+                    int damageDealt = Math.max(playerAttack, 10);
                     currentEnemy.takeDamage(damageDealt);
                     output = "You attacked " + currentEnemy.getName() + " for " + damageDealt + " damage.\n";
                     if (currentEnemy.getEnemyHealth() <= 0) {
                         output += currentEnemy.getName() + " has been defeated!";
                         currentRoom.removeEnemy(currentEnemy);
+                        // Reset the Player object's multiplier
+                        player.resetAttackMultiplier();
+
+                        // Persist the reset so next HTTP request uses base attack
+                        DatabaseProvider.getInstance()
+                            .updatePlayerAttackMultiplier(player.getId(), 1.0);
+                        
                         inCombat = false; // Battle is over
                         currentEnemy = null;
                     } else {
@@ -212,6 +320,13 @@ public class GameEngine {
                 double chance = Math.random();
                 if (chance < currentEnemy.getRunAway()) {
                     output = "You successfully ran away!";
+                   // Reset the Player object's multiplier
+                    player.resetAttackMultiplier();
+
+                    // Persist the reset so next HTTP request uses base attack
+                    DatabaseProvider.getInstance()
+                        .updatePlayerAttackMultiplier(player.getId(), 1.0);
+
                     inCombat = false;
                     currentEnemy = null;
                 } else {
@@ -223,7 +338,12 @@ public class GameEngine {
                     output += " Your Health: " + player.getHealth();
                 }
             } else if (command.equals("help")) {
-                output = "Combat Commands: attack, run, health";
+                output =
+                    "=== Combat Commands ===\n" +
+                    "- attack : Strike your foe.\n" +
+                    "- run    : Attempt to flee battle.\n" +
+                    "- health : Check your current health.\n" +
+                    "- help   : Show this help message.";
             } else if (command.equals("health")) {
                 output = "Health: " + player.getHealth();
             } else {
@@ -299,8 +419,29 @@ public class GameEngine {
                 }
             } else if (command.equals("look")) {
                 output = currentRoom.getLongDescription() + "\n" + currentRoom.getRoomItemsString();
+            } else if (currentRoom.getName().equals("Gas Station")
+                    && command.equalsIgnoreCase("enter gas station")) {
+                shopMode = true;
+                String welcome = "Welcome to Lou’s Gas & Goods!\nType 'help' for shop commands.\n";
+                // record the fact that the player entered the shop
+                transcript.append("> ").append(command).append("\n").append(welcome);
+                return welcome;
             } else if (command.equals("help")) {
-                output = "Available commands: go [direction], look, help, restart, inventory, take [item], drop [item].";
+                output =
+                    "=== General Commands ===\n" +
+                    "- go [direction] : Move north, south, east, west, etc.\n" +
+                    "- look           : Re-examine your surroundings.\n" +
+                    "- talk           : See who’s here to talk to.\n" +
+                    "- talk to [name] : Converse with a specific NPC.\n" +
+                    "- take [item]    : Pick up an item.\n" +
+                    "- drop [item]    : Drop something from your inventory.\n" +
+                    "- inventory      : List items you’re carrying.\n" +
+                    "- health         : Check your current health.\n" +
+                    "- restart        : Restart the game (and reset the DB).\n" +
+                    "- help           : Show this list again.\n\n" +
+                    "When offered an ending you can also type:\n" +
+                    "- yes            : Accept the job/ending.\n" +
+                    "- no             : Decline and keep playing.";
             } else if (command.equals("restart")) {
                 IDatabase db = DatabaseProvider.getInstance();
                 db.resetGameData();
