@@ -117,6 +117,10 @@ public class Player extends Character {
         return time <= 0;
     }
 
+    public void setTime(int time) {
+    	this.time = time; 
+    }
+    
     /*** Room management ***/
     public Room getCurrentRoom() {
         return currentRoom;

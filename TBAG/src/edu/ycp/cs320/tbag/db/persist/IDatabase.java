@@ -51,6 +51,9 @@ public interface IDatabase {
     // Add these signatures at the bottom:
     double getPlayerAttackMultiplier(int playerId);
     void updatePlayerAttackMultiplier(int playerId, double multiplier);
+    
+    int getPlayerTime(int playerId);
+    void updatePlayerTime(int playerId, int newTime);
  
 	NPCDialogue getDialogueById(int dialogueId);
     

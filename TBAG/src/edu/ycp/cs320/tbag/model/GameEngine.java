@@ -219,12 +219,13 @@ public class GameEngine {
             String verb  = command.trim();
             String lower = verb.toLowerCase();
 
-            // HELP
+         // HELP
             if (lower.equals("help")) {
                 out.append(
                     "shop commands:\n" +
                     "  list        – show available items (price, name, description)\n" +
                     "  buy [item]  – purchase if you have enough money\n" +
+                    "  money       – Check how much money you have.\n" +
                     "  sell [item] – offload items for half their value\n" +
                     "  exit        – leave the shop\n" +
                     "  help        – show this menu again\n"
@@ -232,6 +233,7 @@ public class GameEngine {
                 String result = out.toString();
                 transcript.append(result);
                 return result;
+
             }
             // LIST
             else if (lower.equals("list")) {
@@ -284,6 +286,13 @@ public class GameEngine {
                 String roomDesc = currentRoom.getLongDescription() + "\n";
                 transcript.append(roomDesc);
                 return roomDesc;
+            }
+          //MONEY
+            else if (lower.equals("money")) {
+            	out.append("Balance: $" + player.getMoney()+ "\n");
+            	String result = out.toString();
+                transcript.append(result);
+                return result;
             }
             // INVALID
             else {
@@ -417,11 +426,13 @@ public class GameEngine {
                 if (nextRoom != null) {
                     currentRoom = nextRoom;
                     player.setCurrentRoom(currentRoom);
+                    player.reduceTime(100);
                     checkForEnemyEncounter(player, currentRoom);
                     
                     
                     IDatabase db = DatabaseProvider.getInstance();
                     db.updatePlayerLocation(currentRoom.getId());
+                    db.updatePlayerTime(player.getId(), player.getTime());
 
                     StringBuilder sb = new StringBuilder();
                     sb.append(currentRoom.getLongDescription()).append("\n");
@@ -478,7 +489,9 @@ public class GameEngine {
                     "- take [item]    : Pick up an item.\n" +
                     "- drop [item]    : Drop something from your inventory.\n" +
                     "- inventory      : List items you’re carrying.\n" +
+                    "- money          : Check how much money you have.\n" +
                     "- health         : Check your current health.\n" +
+                    "- time           : Check time remaining.\n" +
                     "- restart        : Restart the game (and reset the DB).\n" +
                     "- help           : Show this list again.\n\n" +
                     "When offered an ending you can also type:\n" +
@@ -555,6 +568,10 @@ public class GameEngine {
                 }
             } else if (command.equals("health")) {
                 output = "Health: " + player.getHealth();
+            } else if (command.equals("money")) {
+            	output = "Balance: $" + player.getMoney();
+            } else if (command.equals("time")) {
+            	output = "Time: " + player.getTime() + " remaining";
             } else {
                 output = "I don't understand that command.";
             }
