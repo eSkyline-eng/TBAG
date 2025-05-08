@@ -36,6 +36,8 @@ public class GameEngine {
     private boolean inCombat = false;
     private ShopManager shopManager;
     private boolean shopMode = false;
+    private boolean dialogueMode = false;
+    private int activeDialogueId = -1;
     private Enemy currentEnemy;
     private boolean pendingEndingPrompt = false;
     private EndingCondition pendingEnding = null;
@@ -169,6 +171,34 @@ public class GameEngine {
     public String processCommand(String command) {
         String output = "";
         command = command.trim().toLowerCase();
+        
+     // ------------- DIALOGUE MODE HANDLING -------------
+        if (dialogueMode) {
+            transcript.append("> ").append(command).append("\n");
+
+            try {
+                int choice = Integer.parseInt(command.trim());
+
+                if (choice >= 1 && choice <= 3) {
+                    output = processDialogueChoice(activeDialogueId, choice);
+                    transcript.append(output).append("\n");
+
+                    // Check if dialogue continues or ends
+                    if (output.contains("The conversation has ended.") || output.contains("Ending")) {
+                        dialogueMode = false; // Exit dialogue mode
+                        activeDialogueId = -1;
+                    }
+                } else {
+                	output = "Invalid choice. Please enter 1, 2, or 3.";
+                    transcript.append(output).append("\n");
+                }
+            } catch (NumberFormatException e) {
+                output = "Invalid input. Please enter a number (1, 2, or 3).";
+                transcript.append(output).append("\n");
+            }
+
+            return output;
+        }
         
         // ------------- SHOP MODE HANDLING -------------
         if (shopMode) {
@@ -351,10 +381,23 @@ public class GameEngine {
             }
         } else {
             if (command.startsWith("talk to ")) {
-                String npcName = command.substring(8).trim();
+            	String npcName = command.substring(8).trim();
                 NPC npc = currentRoom.getNPCByName(npcName);
+
                 if (npc != null) {
-                    output = npc.talk();
+                    if (!npc.hasAdvancedDialogue()) {
+                        output = npc.talk();
+                    } else {
+                        output = startAdvancedDialogue(npc.getStartingDialogueId());
+                        transcript.append("> ").append(command).append("\n").append(output).append("\n");
+
+                        // Activate dialogue mode
+                        dialogueMode = true;
+                        activeDialogueId = npc.getStartingDialogueId();
+
+                        transcript.append("Enter your dialogue choice (1, 2, or 3): ").append("\n");
+                        return output;
+                    }
                 } else {
                     output = "There is no one by that name here.";
                 }
@@ -383,7 +426,6 @@ public class GameEngine {
                     StringBuilder sb = new StringBuilder();
                     sb.append(currentRoom.getLongDescription()).append("\n");
                     sb.append(currentRoom.getRoomItemsString()).append("\n");
-                    
 
                     if (!currentRoom.getEvents().isEmpty()) {
                         String eventOutput = eventManager.triggerEvents(currentRoom.getEvents(), player);
@@ -525,7 +567,54 @@ public class GameEngine {
     }
         
     
-    public String getTranscript() {
+    private String startAdvancedDialogue(int dialogueId) {
+        IDatabase db = DatabaseProvider.getInstance();
+        NPCDialogue dialogue = db.getDialogueById(dialogueId);
+
+        if (dialogue == null) {
+            return "This NPC has nothing to say.";
+        }
+
+        return dialogue.getDialogueText() + "\n1) " + dialogue.getResponse1() +
+               "\n2) " + dialogue.getResponse2() + "\n3) " + dialogue.getResponse3();
+    }
+
+    public String processDialogueChoice(int dialogueId, int choice) {
+        IDatabase db = DatabaseProvider.getInstance();
+        NPCDialogue dialogue = db.getDialogueById(dialogueId);
+
+        if (dialogue == null) {
+            return "Invalid dialogue option.";
+        }
+
+        int nextDialogueId;
+        switch (choice) {
+            case 1: nextDialogueId = dialogue.getNext1(); break;
+            case 2: nextDialogueId = dialogue.getNext2(); break;
+            case 3: nextDialogueId = dialogue.getNext3(); break;
+            default: return "Please enter a valid option (1, 2, or 3).";
+        }
+        
+        System.out.println(nextDialogueId);
+
+        if (nextDialogueId == 0) { // Assuming 0 means no further dialogue
+            return "The conversation has ended.";
+        }else if (nextDialogueId == -1) {
+        	player.unlockAchievement("Wall Mart Ending", "Test");
+        	return "The conversation has ended.";
+        }else if (nextDialogueId == -2) {
+        	player.unlockAchievement("Mazon Driver Ending", "Test");
+        	return "The conversation has ended.";
+        }else if (nextDialogueId == -3) {
+        	player.unlockAchievement("Mazon CEO Ending", "Test");
+        	return "The conversation has ended.";
+        }
+
+        activeDialogueId = nextDialogueId;
+        return startAdvancedDialogue(nextDialogueId);
+    }
+
+	public String getTranscript() {
         return transcript.toString();
     }
     

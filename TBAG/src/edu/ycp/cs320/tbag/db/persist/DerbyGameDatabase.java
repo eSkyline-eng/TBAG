@@ -19,6 +19,7 @@ import edu.ycp.cs320.tbag.model.Player;
 import edu.ycp.cs320.tbag.model.Room;
 import edu.ycp.cs320.tbag.util.CSVLoader;
 import edu.ycp.cs320.tbag.model.NPC;
+import edu.ycp.cs320.tbag.model.NPCDialogue;
 import edu.ycp.cs320.tbag.ending.Achievement;
 import edu.ycp.cs320.tbag.events.Damage;
 import edu.ycp.cs320.tbag.events.Dialogue;
@@ -68,6 +69,9 @@ public class DerbyGameDatabase implements IDatabase {
     		// Load connections from connection.csv
             db.loadConnectionsFromCSV("WebContent/CSV/connections.csv");
             
+            // Load NPC Dialogue from npcDialogue.csv
+            db.loadNPCDialogueFromCSV("WebContent/CSV/npcDialogue.csv");
+            
             // Load NPCs from npcs.csv (add this line)
             db.loadNPCsFromCSV("WebContent/CSV/npcs.csv");
 
@@ -76,8 +80,7 @@ public class DerbyGameDatabase implements IDatabase {
             
             // Load events from events.csv
             db.loadEventsFromCSV("WebContent/CSV/events.csv");
-
-
+        
     		System.out.println("Database successfully initialized with items.");
     	} catch (Exception e) {
     		System.err.println("Failed to load CSV files: " + e.getMessage());
@@ -203,11 +206,32 @@ public class DerbyGameDatabase implements IDatabase {
             
             try {
                 conn.prepareStatement(
+                    "CREATE TABLE npc_dialogue (" +
+                    "dialogue_id INT PRIMARY KEY, " +
+                    "dialogue_text VARCHAR(1000), " +
+                    "response_1 VARCHAR(1000), " +
+                    "response_2 VARCHAR(1000), " +
+                    "response_3 VARCHAR(1000), " +
+                    "next_1 INT, " +
+                    "next_2 INT, " +
+                    "next_3 INT" +
+                    ")"
+                ).executeUpdate();
+            } catch(SQLException e) {
+                if (!"X0Y32".equals(e.getSQLState())) throw e;
+            }
+            
+            try {
+                conn.prepareStatement(
                     "CREATE TABLE npc (" +
                     "npc_id INT PRIMARY KEY, " +
                     "name VARCHAR(100), " +
-                    "dialogue VARCHAR(1000), " +
-                    "room_id INT REFERENCES rooms(room_id)" +
+                    "dialogue1 VARCHAR(1000), " +
+                    "dialogue2 VARCHAR(1000), " +
+                    "dialogue3 VARCHAR(1000), " +
+                    "room_id INT REFERENCES rooms(room_id), " +
+                    "has_advanced_dialogue BOOLEAN, " +
+                    "starting_dialogue_id INT REFERENCES npc_dialogue(dialogue_id)" +
                     ")"
                 ).executeUpdate();
             } catch(SQLException e) {
@@ -223,7 +247,9 @@ public class DerbyGameDatabase implements IDatabase {
                     "attack INT, " +
                     "encounter DOUBLE, " +
                     "runAway DOUBLE, " +
-                    "dialogue1 VARCHAR(250)" +
+                    "dialogue1 VARCHAR(250), " +
+                    "dialogue2 VARCHAR(250), " +
+                    "dialogue3 VARCHAR(250)" +
                     ")"
                 ).executeUpdate();
             } catch(SQLException e) {
@@ -709,7 +735,7 @@ public class DerbyGameDatabase implements IDatabase {
         executeTransaction(conn -> {
             List<String[]> records;
             try {
-                // Read NPC definitions: npc_id | name | dialogue | room_id
+                // Read NPC definitions: npc_id | name | dialogue1 | dialogue2 | dialogue3 | room_id | has_advanced_dialogue | starting_dialogue_id
                 records = CSVLoader.loadCSV(filePath, "\\|");
             } catch (IOException e) {
                 throw new SQLException("Failed to load CSV: " + filePath, e);
@@ -720,21 +746,97 @@ public class DerbyGameDatabase implements IDatabase {
 
             // Prepare batch‐insert into npc table
             PreparedStatement stmt = conn.prepareStatement(
-                "INSERT INTO npc (npc_id, name, dialogue, room_id) VALUES (?, ?, ?, ?)"
+                "INSERT INTO npc (npc_id, name, dialogue1, dialogue2, dialogue3, room_id, has_advanced_dialogue, starting_dialogue_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
             );
 
             for (String[] row : records) {
-                int npcId    = Integer.parseInt(row[0].trim());
-                String name  = row[1].trim();
-                String dialog= row[2].trim();
-                int roomId   = Integer.parseInt(row[3].trim());
-                
-                
+                int npcId = Integer.parseInt(row[0].trim());
+                String name = row[1].trim();
+                String dialog1 = row[2].trim();
+                String dialog2 = row[3].trim();
+                String dialog3 = row[4].trim();
+                int roomId = Integer.parseInt(row[5].trim());
+                boolean hasAdvancedDialogue = Boolean.parseBoolean(row[6].trim());
+
+                // Handle starting dialogue ID, avoiding NumberFormatException if empty
+                Integer startingDialogueId = null;
+                if (!row[7].trim().isEmpty()) {
+                    startingDialogueId = Integer.parseInt(row[7].trim());
+                }
+
+                System.out.println("Inserting NPC: " + npcId + " - " + name);
 
                 stmt.setInt(1, npcId);
                 stmt.setString(2, name);
-                stmt.setString(3, dialog);
-                stmt.setInt(4, roomId);
+                stmt.setString(3, dialog1);
+                stmt.setString(4, dialog2);
+                stmt.setString(5, dialog3);
+                stmt.setInt(6, roomId);
+                stmt.setBoolean(7, hasAdvancedDialogue);
+
+                // Handle possible null value
+                if (startingDialogueId != null) {
+                    stmt.setInt(8, startingDialogueId);
+                } else {
+                    stmt.setNull(8, java.sql.Types.INTEGER);
+                }
+
+                stmt.addBatch();
+            }
+
+            stmt.executeBatch();
+            return null;
+        });
+    }
+    
+    public void loadNPCDialogueFromCSV(String filePath) {
+        executeTransaction(conn -> {
+            List<String[]> records;
+            try {
+                // Load CSV file using the pipe separator "|"
+                records = CSVLoader.loadCSV(filePath, "\\|");
+            } catch (IOException e) {
+                throw new SQLException("Failed to load CSV: " + filePath, e);
+            }
+
+            // Clear existing dialogue entries
+            conn.prepareStatement("DELETE FROM npc_dialogue").executeUpdate();
+
+            // Prepare batch insert into npc_dialogue table
+            PreparedStatement stmt = conn.prepareStatement(
+                "INSERT INTO npc_dialogue (dialogue_id, dialogue_text, response_1, response_2, response_3, next_1, next_2, next_3) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+            );
+
+            for (String[] row : records) {
+                int dialogueId = Integer.parseInt(row[0].trim());
+                String dialogueText = row[1].trim();
+                String response1 = row[2].trim();
+                String response2 = row[3].trim();
+                String response3 = row[4].trim();
+                
+                // Handle potential NULL values for next dialogue IDs
+                Integer next1 = (!row[5].trim().equalsIgnoreCase("NULL") && !row[5].trim().isEmpty()) 
+                        ? Integer.parseInt(row[5].trim()) : null;
+
+                Integer next2 = (!row[6].trim().equalsIgnoreCase("NULL") && !row[6].trim().isEmpty()) 
+                        ? Integer.parseInt(row[6].trim()) : null;
+
+                Integer next3 = (!row[7].trim().equalsIgnoreCase("NULL") && !row[7].trim().isEmpty()) 
+                        ? Integer.parseInt(row[7].trim()) : null;
+
+
+                System.out.println("Inserting Dialogue " + dialogueId + " - " + dialogueText);
+                stmt.setInt(1, dialogueId);
+                stmt.setString(2, dialogueText);
+                stmt.setString(3, response1);
+                stmt.setString(4, response2);
+                stmt.setString(5, response3);
+
+                if (next1 != null) stmt.setInt(6, next1); else stmt.setNull(6, java.sql.Types.INTEGER);
+                if (next2 != null) stmt.setInt(7, next2); else stmt.setNull(7, java.sql.Types.INTEGER);
+                if (next3 != null) stmt.setInt(8, next3); else stmt.setNull(8, java.sql.Types.INTEGER);
+
                 stmt.addBatch();
             }
 
@@ -762,7 +864,7 @@ public class DerbyGameDatabase implements IDatabase {
 
 		    // Prepare batch-insert into enemy table
 		    try (PreparedStatement stmt = conn.prepareStatement(
-		        "INSERT INTO enemy (enemy_id, name, room_id, health, attack, encounter, runAway, dialogue1) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")) {
+		        "INSERT INTO enemy (enemy_id, name, room_id, health, attack, encounter, runAway, dialogue1, dialogue2, dialogue3) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
 
 		    	for (String[] row : records) {
 		    	    // Prepare the values
@@ -774,6 +876,8 @@ public class DerbyGameDatabase implements IDatabase {
 		    	    double encounter = Double.parseDouble(row[5].trim());
 		    	    double runAway = Double.parseDouble(row[6].trim());
 		    	    String dialogue1 =  row[7].trim();
+		    	    String dialogue2 =  row[8].trim();
+		    	    String dialogue3 =  row[9].trim();
 
 		    	    // Log the data
 		    	    System.out.println("Inserting enemy: " + enemyId + ", " + name + ", " + roomId + ", " + health + ", " + attack + ", " + encounter + ", " + runAway + ", " + dialogue1);
@@ -786,6 +890,8 @@ public class DerbyGameDatabase implements IDatabase {
 		    	    stmt.setDouble(6, encounter);
 		    	    stmt.setDouble(7, runAway);
 		    	    stmt.setString(8, dialogue1);
+		    	    stmt.setString(9, dialogue2);
+		    	    stmt.setString(10, dialogue3);
 
 		    	    stmt.addBatch();
 		    	}
@@ -891,17 +997,22 @@ public class DerbyGameDatabase implements IDatabase {
 
             // Fetch every NPC definition
             PreparedStatement stmt = conn.prepareStatement(
-                "SELECT name, dialogue, room_id FROM npc"
+                "SELECT name, dialogue1, dialogue2, dialogue3, room_id, has_advanced_dialogue, starting_dialogue_id FROM npc"
             );
             ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) {
                 String name     = rs.getString("name");
-                String dialogue = rs.getString("dialogue");
+                String dialogue1 = rs.getString("dialogue1");
+                String dialogue2 = rs.getString("dialogue2");
+                String dialogue3 = rs.getString("dialogue3");
                 int roomId      = rs.getInt("room_id");
+                boolean hasAdvancedDialogue = rs.getBoolean("has_advanced_dialogue");
+                int startingDialogueId = rs.getInt("starting_dialogue_id");
+
 
                 // Construct the NPC
-                NPC npc = new NPC(name, dialogue, roomId);
+                NPC npc = new NPC(name, dialogue1, dialogue2, dialogue3, roomId, hasAdvancedDialogue, startingDialogueId);
                 // (we’ll attach it to rooms in GameEngine using roomId)
                 // you may want to add a setter on NPC to store roomId:
                 // npc.setRoomId(roomId);
@@ -931,7 +1042,9 @@ public class DerbyGameDatabase implements IDatabase {
                 double encounter = rs.getDouble("encounter");
                 double runAway   = rs.getDouble("runAway");
                 String dialogue1 = rs.getString("dialogue1");
-                Enemy enemy = new Enemy(enemyId, name, roomId, health, attack, encounter, runAway, dialogue1);
+                String dialogue2 = rs.getString("dialogue2");
+                String dialogue3 = rs.getString("dialogue3");
+                Enemy enemy = new Enemy(enemyId, name, roomId, health, attack, encounter, runAway, dialogue1, dialogue2, dialogue3);
                 
                 enemies.add(enemy);
             }
@@ -1017,7 +1130,31 @@ public class DerbyGameDatabase implements IDatabase {
             return null;
         });
     }
+    
+    public NPCDialogue getDialogueById(int dialogueId) {
+        return executeTransaction(conn -> {
+            PreparedStatement stmt = conn.prepareStatement(
+                "SELECT * FROM npc_dialogue WHERE dialogue_id = ?"
+            );
+            stmt.setInt(1, dialogueId);
+            ResultSet rs = stmt.executeQuery();
 
+            if (rs.next()) {
+                return new NPCDialogue(
+                    rs.getInt("dialogue_id"),
+                    rs.getString("dialogue_text"),
+                    rs.getString("response_1"),
+                    rs.getString("response_2"),
+                    rs.getString("response_3"),
+                    rs.getInt("next_1"),
+                    rs.getInt("next_2"),
+                    rs.getInt("next_3")
+                );
+            }
+
+            return null; // No dialogue found
+        });
+    }
 
     public<ResultType> ResultType executeTransaction(Transaction<ResultType> txn) {
 		try {

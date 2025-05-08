@@ -5,11 +5,12 @@ import edu.ycp.cs320.tbag.model.Player;
 public class MazonCEOEnding implements EndingCondition {
     @Override
     public boolean isMet(Player player) {
+    	System.out.println(player.getInventoryString());
         return player.getCurrentRoom().getName().equalsIgnoreCase("Mazon")
             && player.checkInventory("resume")
-            && player.hasAchievement("mazon_ceo_interview")
             && player.checkInventory("suit")
-            && player.checkInventory("degree");
+            && player.checkInventory("Degree")
+            && player.hasAchievement("Mazon CEO Ending");
     }
 
     @Override

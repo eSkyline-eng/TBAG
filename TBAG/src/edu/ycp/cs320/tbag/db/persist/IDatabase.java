@@ -8,6 +8,7 @@ import edu.ycp.cs320.tbag.model.ItemLocation;
 import edu.ycp.cs320.tbag.model.Player;
 import edu.ycp.cs320.tbag.model.Room;
 import edu.ycp.cs320.tbag.model.NPC;
+import edu.ycp.cs320.tbag.model.NPCDialogue;
 import edu.ycp.cs320.tbag.ending.Achievement;
 import edu.ycp.cs320.tbag.events.Event;
 import edu.ycp.cs320.tbag.model.Enemy;
@@ -50,6 +51,7 @@ public interface IDatabase {
     // Add these signatures at the bottom:
     double getPlayerAttackMultiplier(int playerId);
     void updatePlayerAttackMultiplier(int playerId, double multiplier);
-
+ 
+	NPCDialogue getDialogueById(int dialogueId);
     
 }

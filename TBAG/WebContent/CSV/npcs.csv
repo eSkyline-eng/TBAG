@@ -1,3 +1,22 @@
-1|Mom|Mom: Get a job|1
-2|Joe|Joe: Hi there|2
-3|Mark|Congrats|2
+1|Mom|Mom: Get a job|Mom: Please get out|Mom: Leave now|1|false|1
+2|Joe|Joe: Hi there|Joe: How's it going?|Joe: Hello|2|false|1
+3|Mark|Mark: Man, work sucks|Mark: Mondays, am I right?|Mark: ...|2|false|1
+4|Peter|Peter: Are you going to order or...?|Peter: Your holding up the line man|Peter: Could you move?|10|false|1
+5|Manager|Manager: You'll love working here!|Manager: We definitely will pay you enough|Manager: Who needs a fancy job? It's great here!|10|false|1
+6|Rat|Rat: Squeak|Rat: ...|The rat looks at you judgingly|7|false|1
+7|Hake|Hake: Do or do not there is no try|Hake: Eat, sleep, bath. 2 out the 3 everyday just not 2 at the same time|Hake: |5|false|1
+8|Aiden|Aiden: I WON THE LOTTERY!|Aiden: I just won on a scratch off from the gas station!|Aiden: Check out the gas station, they might have something useful|4|false|1
+9|Willy|Willy: There have been strange noises coming from the sewer|Willy: If only we could get the sewer grate open...|Willy: I wonder what's down in the sewer...|4|false|1
+10|Richard|Richard: I think i'll move to Peru|Richard: I'm tired of this city|Richard: I need a change of pace|3|false|1
+11|Bob|Bob: I think it's going to rain soon|Bob: There's rain on the forecast|Bob: I should get an umbrella...|3|false|1
+12|Sally|Sally: I really want some chips...|Sally: I could go for some chips right now|Sally: Got a snack? I'm hungry|4|false|1
+13|Lily|Lily: Have you seen that new popular show?|Lily: That new show that came out is so good|Lily: You should really watch that new show that came out|3|false|1
+14|Michelle|Michelle: I have a friend who works at the school|Michelle: That school is really short on professors|Michelle: If only anyone around was a professor|3|false|1
+15|Angela|Angela: Why did I become a theater major...|Angela: I'm in so much debt...|Angela: I have so much homework tonight|5|false|1
+16|Interviewer|ADVANCED|ADVANCED|ADVANCED|8|true|2
+17|Interviewer|ADVANCED|ADVANCED|ADVANCED|6|true|9
+18|Juliet|Juliet: Mazon keeps trying to replace me with AI|Juliet: I think I'm going to lose my job soon|Juliet: I heard something tragic happened to the CEO|6|false|1
+19|Shawn|Shawn: Who wanted a store that only sells walls?|Shawn: Who needs this many walls?|Shawn: This store is so weird|8|false|1
+20|Amy|Amy: Any wall any time, that's out motto|Amy: Any wall you can think of, we have|Amy: What wall can I get for you today|8|false|1
+21|Hobo|Hobo: Aliens... they exist|Hobo: Aliens abducted the Mazon CEO... I saw it!|Hobo: Look to the skies, you'll see a UFO|9|false|1
+22|Henry|Henry: Welcome to the gas station we have *almost* anything you need|Henry: Feel free to sell us stuff to, we'll take anything of value off your hands|Henry: Check out our wares, they can be quite useful|9|false|1

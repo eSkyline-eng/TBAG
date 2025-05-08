@@ -1,19 +1,15 @@
 package edu.ycp.cs320.tbag.model;
-import java.util.Random;
+
 public class Enemy extends NPC {
   private int enemyID;
   private int health;
   private int attack;
   private double encounter;
   private double runAway;
-  //private String combatDialogue1; // First combat dialogue
-  //private String combatDialogue2; // Second combat dialogue
-  //private String combatDialogue3; // Third combat dialogue
-  //private Random random = new Random();
  
   public Enemy(int enemyID, String name, int roomId, int health, int attack, double encounter, double runAway,
-          String dialogue1) {
- super(name, dialogue1, roomId );  // Inherit the name and dialogue from the NPC class
+          String dialogue1, String dialogue2, String dialogue3) {
+ super(name, dialogue1, dialogue2, dialogue3, roomId, false, 1);  // Inherit the name and dialogue from the NPC class
  this.enemyID = enemyID;
  this.health = health;
  this.attack = attack;

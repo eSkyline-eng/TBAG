@@ -7,7 +7,7 @@ public class MazonDriverEnding implements EndingCondition {
     public boolean isMet(Player player) {
         return player.getCurrentRoom().getName().equalsIgnoreCase("Mazon")
             && player.checkInventory("resume")
-            && player.hasAchievement("mazon_interview");
+            && player.hasAchievement("Mazon Driver Ending");
     }
 
     @Override

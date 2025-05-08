@@ -6,7 +6,7 @@ public class WallMartEnding implements EndingCondition {
     @Override
     public boolean isMet(Player player) {
         return player.getCurrentRoom().getName().equalsIgnoreCase("Wall Mart")
-            && player.checkInventory("resume");
+            && player.checkInventory("resume") && player.hasAchievement("Wall Mart Ending");
     }
 
     @Override
