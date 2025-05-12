@@ -72,6 +72,10 @@ public class ShopManager {
             out.append("Insufficient funds to buy ").append(item.getName()).append(".\n");
             return true;
         }
+        if (item.getType().equals("heal") && player.getHealth() > 80) {
+        	out.append("Unable to buy: it would push your health past the 100 HP cap.\n");
+            return false;
+        }
         player.deductMoney(price);
         db.updatePlayerMoney(player.getId(), player.getMoney());
 
