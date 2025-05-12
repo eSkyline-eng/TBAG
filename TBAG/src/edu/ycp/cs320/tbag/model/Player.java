@@ -8,18 +8,21 @@ import java.util.Set;
 import edu.ycp.cs320.tbag.db.persist.DatabaseProvider;
 import edu.ycp.cs320.tbag.db.persist.IDatabase;
 import edu.ycp.cs320.tbag.ending.Achievement;
-import edu.ycp.cs320.tbag.model.Item;
+import edu.ycp.cs320.tbag.model.RegularItem;
+import edu.ycp.cs320.tbag.model.Weapons;
 
 /**
  * Represents the player, including health, attack, inventory, achievements, and shop-specific state.
  */
 public class Player extends Character {
     private int id;                        // Database ID for persistence
-    private int attack = 10;
+    private int baseAttack = 10;
+    private int currentAttack = 10;
     private int health = 100;
     private int time;                      // Player-specific timer
     private Room currentRoom;              // The room the player is currently in
     private Map<String, Achievement> achievements = new HashMap<>();
+    
 
     // Shop-related fields
     private int money;
@@ -29,12 +32,15 @@ public class Player extends Character {
     
     // at the top with your other fields
     private boolean gameOver = false;
+    //equip weapons
+    private Weapons equipWeapon;
 
 
     public Player() {
         super();                          // Initialize inventory
-        this.time = 500;                  // Default time
+        this.time = 100000;                  // Default time
         this.money = 50;                  // Starting money
+        
     }
 
     /*** ID management ***/
@@ -83,7 +89,7 @@ public class Player extends Character {
      */
     public int getAttack() {
         // e.g. base=10, multiplier=1.5 → 15
-        return (int) Math.ceil(this.attack * this.attackMultiplier);
+        return (int) Math.ceil(this.currentAttack * this.attackMultiplier);
     }
     /**
      * Multiply the attack multiplier by (1 + percent/100).
@@ -91,6 +97,17 @@ public class Player extends Character {
      */
     public void applyAttackBoost(int percent) {
         this.attackMultiplier *= (1.0 + percent / 100.0);
+    }
+    
+    public int getBaseAttack() {
+        return baseAttack;
+    }
+    public void setBaseAttack(int baseAttack) {
+        this.baseAttack = baseAttack;
+        this.currentAttack = baseAttack;
+    }
+    public int getCurrentAttack() {
+        return currentAttack;
     }
 
     /** Reset the multiplier back to 1.0 after a battle ends. */
@@ -184,11 +201,11 @@ public class Player extends Character {
 
     /*** Inventory management ***/
 
-    public boolean pickUpItem(Item item) {
+    public boolean pickUpItem(Items item) {
         return getInventory().addItem(item);
     }
 
-    public boolean dropItem(Item item) {
+    public boolean dropItem(Items item) {
         return getInventory().removeItem(item);
     }
     public String getInventoryString() {
@@ -205,7 +222,7 @@ public class Player extends Character {
             .anyMatch(item -> item.getName().equalsIgnoreCase(name));
     }
     public boolean removeItem(String name) {
-        Item removed = getInventory().removeItemByName(name);
+        Items removed = getInventory().removeItemByName(name);
         return (removed != null);
     }
     
@@ -215,6 +232,48 @@ public class Player extends Character {
     }
     public void setGameOver(boolean gameOver) {
         this.gameOver = gameOver;
+    }
+    
+    //getter+setter to equip weapons
+    public Weapons getEquippedWeapon() {
+        return equipWeapon;
+    }
+    
+
+    public void equipWeapon(Weapons weapon) {
+        if (weapon == null) {
+            System.out.println("Cannot equip a null weapon.");
+            return;
+        }
+
+        if (this.equipWeapon != null) {
+            System.out.println("You already have " + this.equipWeapon.getName() + " equipped.");
+            return;
+        }
+
+        this.equipWeapon = weapon;
+        this.currentAttack = (int) Math.ceil(baseAttack * weapon.getDamageMultiplier());
+        System.out.println("Equipped " + weapon.getName() + ". Attack is now " + currentAttack);
+    }
+    
+    //unequipWeapon
+    public void unequipWeapon() {
+    	if (this.equipWeapon == null) {
+            System.out.println("No weapon equipped.");
+            return;
+        }
+
+        System.out.println("Unequipped " + this.equipWeapon.getName());
+        this.equipWeapon = null;
+        this.currentAttack = baseAttack;
+    }
+    
+    public Items getItemByName(String name) {
+        return getInventory().getItems()
+            .stream()
+            .filter(item -> item.getName().equalsIgnoreCase(name))
+            .findFirst()
+            .orElse(null);
     }
     
 }

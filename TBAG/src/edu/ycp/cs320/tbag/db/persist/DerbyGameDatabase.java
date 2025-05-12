@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.io.FileReader;
@@ -13,7 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import edu.ycp.cs320.tbag.model.Item;
+import edu.ycp.cs320.tbag.model.RegularItem;
 import edu.ycp.cs320.tbag.model.ItemLocation;
 import edu.ycp.cs320.tbag.model.Player;
 import edu.ycp.cs320.tbag.model.Room;
@@ -25,6 +26,8 @@ import edu.ycp.cs320.tbag.events.Damage;
 import edu.ycp.cs320.tbag.events.Dialogue;
 import edu.ycp.cs320.tbag.events.Event;
 import edu.ycp.cs320.tbag.model.Enemy;
+import edu.ycp.cs320.tbag.model.Weapons;
+import edu.ycp.cs320.tbag.model.Items;
 
 import java.util.Properties;
 import java.io.FileInputStream;
@@ -79,7 +82,7 @@ public class DerbyGameDatabase implements IDatabase {
 
 			// Load events from events.csv
 			db.loadEventsFromCSV("WebContent/CSV/events.csv");
-
+		
 			System.out.println("Database successfully initialized with items.");
 		} catch (Exception e) {
 			System.err.println("Failed to load CSV files: " + e.getMessage());
@@ -152,8 +155,9 @@ public class DerbyGameDatabase implements IDatabase {
 			try {
 				conn.prepareStatement(
 						"CREATE TABLE item_definitions (" + "item_id INT PRIMARY KEY, " + "item_name VARCHAR(50), "
-								+ "description VARCHAR(1000), " + "weight DOUBLE, " + "value DOUBLE)")
-						.executeUpdate();
+								+ "description VARCHAR(1000), " + "weight DOUBLE, " + "value DOUBLE, " + "type VARCHAR(50), "
+								+ "damage DOUBLE, " + "effect INT" + ")" 
+								).executeUpdate();
 			} catch (SQLException e) {
 				if (!"X0Y32".equals(e.getSQLState()))
 					throw e;
@@ -224,14 +228,22 @@ public class DerbyGameDatabase implements IDatabase {
             }
 			
 			try {
-				conn.prepareStatement("CREATE TABLE enemy (" + "enemy_id INT PRIMARY KEY, " + "name VARCHAR(100), "
-						+ "room_id INT REFERENCES rooms(room_id), " + "health INT, " + "attack INT, "
-						+ "encounter DOUBLE, " + "runAway DOUBLE, " + "dialogue1 VARCHAR(250), " +
-	                    "dialogue2 VARCHAR(250), " +
-	                    "dialogue3 VARCHAR(250)" + ")").executeUpdate();
+			    conn.prepareStatement(
+			        "CREATE TABLE enemy (" +
+			        "enemy_id INT PRIMARY KEY, " +
+			        "name VARCHAR(100), " +
+			        "room_id INT REFERENCES rooms(room_id), " +
+			        "health INT, " +
+			        "attack INT, " +
+			        "encounter DOUBLE, " +
+			        "runAway DOUBLE, " +
+			        "dialogue1 VARCHAR(250), " +
+			        "dialogue2 VARCHAR(250), " +
+			        "dialogue3 VARCHAR(250))"
+			    ).executeUpdate();
 			} catch (SQLException e) {
-				if (!"X0Y32".equals(e.getSQLState()))
-					throw e;
+			    if (!"X0Y32".equals(e.getSQLState()))
+			        throw e;
 			}
 			try {
 				conn.prepareStatement(
@@ -269,6 +281,8 @@ public class DerbyGameDatabase implements IDatabase {
 					throw e;
 				}
 			}
+			
+			
 
 			System.out.println("Tables created (or already existed).");
 			return true;
@@ -286,6 +300,7 @@ public class DerbyGameDatabase implements IDatabase {
 			conn.prepareStatement("DELETE FROM enemy").executeUpdate();
 			conn.prepareStatement("DELETE FROM connections").executeUpdate();
 			conn.prepareStatement("DELETE FROM npc").executeUpdate();
+			
 
 			return null;
 		});
@@ -297,6 +312,7 @@ public class DerbyGameDatabase implements IDatabase {
 		loadConnectionsFromCSV("WebContent/CSV/connections.csv");
 		loadNPCsFromCSV("Webcontent/CSV/npcs.csv");
 		loadEnemyFromCSV("WebContent/CSV/enemy.csv");
+		
 
 		// Recreate default player
 		savePlayerState(100, 1); // HP = 100, room ID = 1
@@ -478,6 +494,7 @@ public class DerbyGameDatabase implements IDatabase {
 			return null;
 		});
 	}
+	
 
 	// ----- New player‐health update method -----
 	@Override
@@ -518,6 +535,7 @@ public class DerbyGameDatabase implements IDatabase {
 			return null;
 		});
 	}
+	
 
 	public List<Event> loadAllEvents() {
 		return executeTransaction(conn -> {
@@ -558,21 +576,53 @@ public class DerbyGameDatabase implements IDatabase {
 			} catch (IOException e) {
 				throw new SQLException("Failed to load CSV: " + filePath, e);
 			}
+			
+			//conn.prepareStatement("DELETE FROM room_items").executeUpdate(); // or whatever table references item_definitions
+			
+			//conn.prepareStatement("DELETE FROM player_inventory").executeUpdate(); // if applicable
 
 			conn.prepareStatement("DELETE FROM item_definitions").executeUpdate(); // optional cleanup
 
 			PreparedStatement stmt = conn.prepareStatement(
-					"INSERT INTO item_definitions (item_id, item_name, description, weight, value) VALUES (?, ?, ?, ?, ?)");
+			        "INSERT INTO item_definitions (item_id, item_name, description, weight, value, type, damage, effect) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
 
-			for (String[] row : records) {
-				stmt.setInt(1, Integer.parseInt(row[0].trim()));
-				stmt.setString(2, row[1].trim());
-				stmt.setString(3, row[2].trim());
-				stmt.setDouble(4, Double.parseDouble(row[3].trim()));
-				stmt.setDouble(5, Double.parseDouble(row[4].trim()));
-				stmt.addBatch();
-			}
 
+					for (String[] row : records) {
+			            int id = Integer.parseInt(row[0].trim());
+			            String name = row[1].trim();
+			            String description = row[2].trim();
+			            double weight = Double.parseDouble(row[3].trim());
+			            double value = Double.parseDouble(row[4].trim());
+			            String type = row[5].trim();
+			            Double damage = type.equalsIgnoreCase("weapon") ? Double.parseDouble(row[6].trim()) : null; // Only weapons have damage
+			            Integer consumable = type.equalsIgnoreCase("consumable") ? Integer.parseInt(row[7].trim()) : null; //Only for consumables
+			            
+			         // Insert common item details
+			            stmt.setInt(1, id);
+			            stmt.setString(2, name);
+			            stmt.setString(3, description);
+			            stmt.setDouble(4, weight);
+			            stmt.setDouble(5, value);
+
+			            // Set type and damage if applicable
+			            stmt.setString(6, type);
+			            if (damage != null) {
+			            	stmt.setDouble(7, damage);
+			            } else {
+			            	stmt.setNull(7, Types.DOUBLE);
+			            }
+
+			            if (consumable != null) {
+			            	stmt.setInt(8, consumable);
+			            } else {
+			            	stmt.setNull(8, Types.INTEGER);
+			            }
+
+			            stmt.addBatch();
+					}
+					
+
+		            
 			stmt.executeBatch();
 			return null;
 		});
@@ -616,6 +666,7 @@ public class DerbyGameDatabase implements IDatabase {
 			return null;
 		});
 	}
+	
 
 	public void loadRoomsFromCSV(String filePath) {
 		executeTransaction(conn -> {
@@ -957,8 +1008,6 @@ public class DerbyGameDatabase implements IDatabase {
 
 				// Construct the NPC
                 NPC npc = new NPC(name, dialogue1, dialogue2, dialogue3, roomId, hasAdvancedDialogue, startingDialogueId);
-				// (we’ll attach it to rooms in GameEngine using roomId)
-				// you may want to add a setter on NPC to store roomId:
 				// npc.setRoomId(roomId);
 
 				npcs.add(npc);
@@ -995,6 +1044,7 @@ public class DerbyGameDatabase implements IDatabase {
 			return enemies;
 		});
 	}
+	
 
 	public List<ItemLocation> loadAllItemLocations() {
 		return executeTransaction(conn -> {
@@ -1012,9 +1062,9 @@ public class DerbyGameDatabase implements IDatabase {
 		});
 	}
 
-	public Map<Integer, Item> loadItemDefinitions() {
+	public Map<Integer, Items> loadItemDefinitions() {
 		return executeTransaction(conn -> {
-			Map<Integer, Item> map = new HashMap<>();
+			Map<Integer, Items> map = new HashMap<>();
 
 			PreparedStatement stmt = conn.prepareStatement("SELECT * FROM item_definitions");
 			ResultSet rs = stmt.executeQuery();
@@ -1025,8 +1075,27 @@ public class DerbyGameDatabase implements IDatabase {
 				String description = rs.getString("description");
 				double weight = rs.getDouble("weight");
 				double value = rs.getDouble("value");
+				String type = rs.getString("type");
+				double damage = rs.getDouble("damage");
+				int effect = rs.getInt("effect");
 
-				map.put(id, new Item(id, name, description, weight, value));
+				Items item;
+
+				switch (type.toLowerCase()) {
+					case "weapon":
+						item = new Weapons(id, name, description, weight, value, damage);
+						break;
+					case "normal":
+						item = new RegularItem(id, name, description, weight, value);
+						break;
+					// Optionally add "consumable" later when implemented
+					default:
+						System.err.println("Unknown item type for ID " + id + ": " + type);
+						continue;
+				}
+				
+
+				map.put(id, item);
 			}
 
 			return map;

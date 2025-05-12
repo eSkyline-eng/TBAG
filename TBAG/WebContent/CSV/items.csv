@@ -1,5 +1,8 @@
-12|Resume|A clean, professional-looking resume, listing every part-time job and club you could remember.|0.1|0
-13|Suit|A modest, well-kept suit—your secret weapon for interviews.|1.5|100
-14|Crowbar|A heavy crowbar, useful for both leverage and self-defense.|2.5|15
-15|Degree|A college diploma bearing your name, pride, and a lot of debt.|0.2|0
-16|HS Degree|Your high school diploma, laminated and slightly curled at the edges.|0.2|0
+12|Resume|A clean, professional-looking resume, listing every part-time job and club you could remember.|0.1|0|normal||
+13|Suit|A modest, well-kept suit—your secret weapon for interviews.|1.5|100.0|normal||
+14|Goldbar|Holy crap, how did this even get down here|40.0|10000.0|normal||
+15|Degree|A college diploma bearing your name, pride, and a lot of debt.|0.2|0|normal||
+16|HS Degree|Your high school diploma, laminated and slightly curled at the edges.|0.2|0|normal||
+17|Old Bat|Dad's old bat he took to the big league's. You can feel the dad lore emanating from it|2.2|5.0|weapon|2.0|
+18|Crowbar|A heavy crowbar, useful for both leverage and self-defense.|2.5|15.0|weapon|2.2|
+19|Band-Aid|Covers your wounds to protect you from infection|0.1|2.0|consumable||8|

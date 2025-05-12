@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import edu.ycp.cs320.tbag.model.Enemy;
-import edu.ycp.cs320.tbag.model.Item;
+import edu.ycp.cs320.tbag.model.RegularItem;
 import edu.ycp.cs320.tbag.model.ItemLocation;
 import edu.ycp.cs320.tbag.model.NPC;
 import edu.ycp.cs320.tbag.model.Player;
@@ -59,7 +59,7 @@ public class AchievementEndingTest {
             }
 
             @Override
-            public Map<Integer, Item> loadItemDefinitions() {
+            public Map<Integer, RegularItem> loadItemDefinitions() {
                 return new java.util.HashMap<>();
             }
 
@@ -137,7 +137,7 @@ public class AchievementEndingTest {
     public void testMazonDriverEndingAchieved() {
         player.setCurrentRoom(new Room(6, "Mazon", ""));
         player.unlockAchievement("mazon_interview", "Had the Mazon driver interview");
-        player.pickUpItem(new Item(12, "resume", "", 0.1, 0));
+        player.pickUpItem(new RegularItem(12, "resume", "", 0.1, 0));
         assertEquals("Mazon", player.getCurrentRoom().getName());
         assertTrue(player.checkInventory("resume"));
         assertTrue(player.hasAchievement("mazon_interview"));
@@ -146,7 +146,7 @@ public class AchievementEndingTest {
 
     @Test
     public void testRatKingEndingAchieved() {
-        player.pickUpItem(new Item(14, "crowbar", "", 2.5, 15));
+        player.pickUpItem(new RegularItem(14, "crowbar", "", 2.5, 15));
         player.unlockAchievement("defeated_rat_king", "You defeated the Rat King");
         assertTrue(player.checkInventory("crowbar"));
         assertTrue(player.hasAchievement("defeated_rat_king"));
@@ -156,7 +156,7 @@ public class AchievementEndingTest {
     @Test
     public void testWallMartEndingAchieved() {
         player.setCurrentRoom(new Room(8, "Wall Mart", ""));
-        player.pickUpItem(new Item(12, "resume", "", 0.1, 0));
+        player.pickUpItem(new RegularItem(12, "resume", "", 0.1, 0));
         assertEquals("Wall Mart", player.getCurrentRoom().getName());
         assertTrue(player.checkInventory("resume"));
         assertTrue(new WallMartEnding().isMet(player));
@@ -165,7 +165,7 @@ public class AchievementEndingTest {
     @Test
     public void testMcRonaldsEndingAchieved() {
         player.setCurrentRoom(new Room(10, "McRonalds", ""));
-        player.pickUpItem(new Item(12, "resume", "", 0.1, 0));
+        player.pickUpItem(new RegularItem(12, "resume", "", 0.1, 0));
         assertEquals("McRonalds", player.getCurrentRoom().getName());
         assertTrue(player.checkInventory("resume"));
         assertTrue(new McRonaldsEnding().isMet(player));
@@ -174,9 +174,9 @@ public class AchievementEndingTest {
     @Test
     public void testMazonCEOEndingAchieved() {
         player.setCurrentRoom(new Room(6, "Mazon", ""));
-        player.pickUpItem(new Item(12, "resume", "", 0.1, 0));
-        player.pickUpItem(new Item(13, "suit", "", 1.5, 20));
-        player.pickUpItem(new Item(15, "degree", "", 0.2, 0));
+        player.pickUpItem(new RegularItem(12, "resume", "", 0.1, 0));
+        player.pickUpItem(new RegularItem(13, "suit", "", 1.5, 20));
+        player.pickUpItem(new RegularItem(15, "degree", "", 0.2, 0));
         player.unlockAchievement("mazon_ceo_interview", "Had the Mazon CEO interview");
         assertEquals("Mazon", player.getCurrentRoom().getName());
         assertTrue(player.checkInventory("resume"));

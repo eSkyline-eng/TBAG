@@ -4,16 +4,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
-import edu.ycp.cs320.tbag.model.Item;
+import edu.ycp.cs320.tbag.model.RegularItem;
 import edu.ycp.cs320.tbag.model.NPC;
 
 public class NPCTest {
-    private Item item;
+    private RegularItem item;
     private NPC npc;
 
     @BeforeEach
     public void setUp() {
-        item = new Item(101, "Magic Key", "Unlocks hidden doors", 0.5, 50.0);
+        item = new RegularItem(101, "Magic Key", "Unlocks hidden doors", 0.5, 50.0);
         npc = new NPC("Frank", "Welcome to the city, traveler!",1);
     }
 
@@ -71,7 +71,7 @@ public class NPCTest {
 
     @Test
     public void testNPCInventoryAddItem() {
-        Item mug = new Item(33, "Coffee Mug", "Stained with regret", 0.3, 2.0);
+        RegularItem mug = new RegularItem(33, "Coffee Mug", "Stained with regret", 0.3, 2.0);
         assertTrue(npc.getInventory().addItem(mug));
         assertTrue(npc.getInventory().getItems().contains(mug));
     }

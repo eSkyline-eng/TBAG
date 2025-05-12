@@ -139,7 +139,7 @@ public class ShopManager {
         } else if (player.hasItem(itemName)) {
             // selling a general inventory item
             // fetch the Item instance without removing yet
-            Item inv = player.getInventory().getItems().stream()
+            Items inv = player.getInventory().getItems().stream()
                 .filter(i -> i.getName().equalsIgnoreCase(itemName))
                 .findFirst().orElse(null);
 

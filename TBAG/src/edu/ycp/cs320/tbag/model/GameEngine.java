@@ -32,7 +32,7 @@ public class GameEngine {
     private StringBuilder transcript;
     private EventManager eventManager;
     private Map<Integer, Room> roomMap;   // Maps roomID to Room objects
-    private Map<Integer, Item> itemMap;   // Maps itemID to Item objects
+    private Map<Integer, Items> itemMap;   // Maps itemID to Item objects
     private boolean inCombat = false;
     private ShopManager shopManager;
     private boolean shopMode = false;
@@ -132,18 +132,23 @@ public class GameEngine {
 
         List<ItemLocation> itemLocations = db.loadAllItemLocations();
         for (ItemLocation loc : itemLocations) {
-            Item item = itemMap.get(loc.getItemId());
+           Items item = itemMap.get(loc.getItemId());
+            
             if (item != null) {
                 if (loc.getLocationType().equals("room")) {
                     Room room = roomMap.get(loc.getLocationId());
                     if (room != null) {
                         for (int i = 0; i < loc.getQuantity(); i++) {
                             room.addItem(item);
+                            System.out.println("Added item " + item.getName() + " (ID: " + item.getId() + ") to room: " + room.getName() + 
+                                    " | Type: " + item.getType() + " | Weight: " + item.getWeight() + " | Value: " + item.getValue());
                         }
                     }
                 } else if (loc.getLocationType().equals("player")) {
                     for (int i = 0; i < loc.getQuantity(); i++) {
                         player.pickUpItem(item);
+                        System.out.println("Player picked up item " + item.getName() + " (ID: " + item.getId() + ") | Type: " + item.getType() + 
+                                " | Weight: " + item.getWeight() + " | Value: " + item.getValue());
                     }
                 }
             }
@@ -388,6 +393,9 @@ public class GameEngine {
             } else {
                 output = "You're in combat! You can only attack " + currentEnemy.getName() + ", run away, or check health.";
             }
+        
+            
+        //<--Initial Game Commands-->    
         } else {
             if (command.startsWith("talk to ")) {
             	String npcName = command.substring(8).trim();
@@ -472,73 +480,12 @@ public class GameEngine {
                 }
             } else if (command.equals("look")) {
                 output = currentRoom.getLongDescription() + "\n" + currentRoom.getRoomItemsString();
-            } else if (currentRoom.getName().equals("Gas Station")
-                    && command.equalsIgnoreCase("enter gas station")) {
-                shopMode = true;
-                String welcome = "Welcome to Lou’s Gas & Goods!\nType 'help' for shop commands.\n";
-                // record the fact that the player entered the shop
-                transcript.append("> ").append(command).append("\n").append(welcome);
-                return welcome;
-            } else if (command.equals("help")) {
-                output =
-                    "=== General Commands ===\n" +
-                    "- go [direction] : Move north, south, east, west, etc.\n" +
-                    "- look           : Re-examine your surroundings.\n" +
-                    "- talk           : See who’s here to talk to.\n" +
-                    "- talk to [name] : Converse with a specific NPC.\n" +
-                    "- take [item]    : Pick up an item.\n" +
-                    "- drop [item]    : Drop something from your inventory.\n" +
-                    "- inventory      : List items you’re carrying.\n" +
-                    "- money          : Check how much money you have.\n" +
-                    "- health         : Check your current health.\n" +
-                    "- time           : Check time remaining.\n" +
-                    "- restart        : Restart the game (and reset the DB).\n" +
-                    "- help           : Show this list again.\n\n" +
-                    "When offered an ending you can also type:\n" +
-                    "- yes            : Accept the job/ending.\n" +
-                    "- no             : Decline and keep playing.";
-            } else if (command.equals("restart")) {
-                IDatabase db = DatabaseProvider.getInstance();
-                db.resetGameData();
-                initGame();
-                output = "Game and database restarted.\n" +
-                         currentRoom.getLongDescription() + "\n" +
-                         currentRoom.getRoomItemsString();
-            } else if (command.equals("inventory")) {
-                output = player.getInventoryString();
-            } else if (command.startsWith("take ")) {
+            }  else if (command.startsWith("drop ")) {
                 String itemName = command.substring(5).trim();
                 IDatabase db = DatabaseProvider.getInstance();
 
-                List<ItemLocation> roomItems = db.getItemsAtLocation("room", currentRoom.getId());
-                ItemLocation found = null;
-                for (ItemLocation loc : roomItems) {
-                    Item item = itemMap.get(loc.getItemId());
-                    if (item != null && item.getName().equalsIgnoreCase(itemName)) {
-                        found = loc;
-                        break;
-                    }
-                }
-
-                if (found != null) {
-                    Item targetItem = itemMap.get(found.getItemId());
-                    if (player.pickUpItem(targetItem)) {
-                        currentRoom.removeItem(targetItem);
-                        db.transferItem(found.getInstanceId(), "room", currentRoom.getId(), "player", 1);
-                        output = "You picked up the " + targetItem.getName() + ".";
-                    } else {
-                        currentRoom.addItem(targetItem); // This line seems unnecessary; you already removed it conditionally.
-                        output = "You can't carry the " + targetItem.getName() + ".";
-                    }
-                } else {
-                    output = "That item isn't here.";
-                }
-            } else if (command.startsWith("drop ")) {
-                String itemName = command.substring(5).trim();
-                IDatabase db = DatabaseProvider.getInstance();
-
-                Item droppedItem = null;
-                for (Item item : player.getInventory().getItems()) {
+                Items droppedItem = null;
+                for (Items item : player.getInventory().getItems()) {
                     if (item.getName().equalsIgnoreCase(itemName)) {
                         droppedItem = item;
                         break;
@@ -572,9 +519,96 @@ public class GameEngine {
             	output = "Balance: $" + player.getMoney();
             } else if (command.equals("time")) {
             	output = "Time: " + player.getTime() + " remaining";
-            } else {
+            } else if (command.equals("help")) {
+                output =
+                        "=== General Commands ===\n" +
+                        "- go [direction] : Move north, south, east, west, etc.\n" +
+                        "- look           : Re-examine your surroundings.\n" +
+                        "- talk           : See who’s here to talk to.\n" +
+                        "- talk to [name] : Converse with a specific NPC.\n" +
+                        "- take [item]    : Pick up an item.\n" +
+                        "- drop [item]    : Drop something from your inventory.\n" +
+                        "- inventory      : List items you’re carrying.\n" +
+                        "- money          : Check how much money you have.\n" +
+                        "- health         : Check your current health.\n" +
+                        "- time           : Check time remaining.\n" +
+                        "- restart        : Restart the game (and reset the DB).\n" +
+                        "- help           : Show this list again.\n\n" +
+                        "When offered an ending you can also type:\n" +
+                        "- yes            : Accept the job/ending.\n" +
+                        "- no             : Decline and keep playing.";
+            }else if (command.startsWith("take ")) {
+                String itemName = command.substring(5).trim();
+                IDatabase db = DatabaseProvider.getInstance();
+
+                List<ItemLocation> roomItems = db.getItemsAtLocation("room", currentRoom.getId());
+                ItemLocation found = null;
+                for (ItemLocation loc : roomItems) {
+                    Items item = itemMap.get(loc.getItemId());
+                    if (item != null && item.getName().equalsIgnoreCase(itemName)) {
+                        found = loc;
+                        break;
+                    }
+                }
+
+                if (found != null) {
+                    Items targetItem = itemMap.get(found.getItemId());
+                    if (player.pickUpItem(targetItem)) {
+                        currentRoom.removeItem(targetItem);
+                        db.transferItem(found.getInstanceId(), "room", currentRoom.getId(), "player", 1);
+                        output = "You picked up the " + targetItem.getName() + ".";
+                    } else {
+                        currentRoom.addItem(targetItem); // This line seems unnecessary; you already removed it conditionally.
+                        output = "You can't carry the " + targetItem.getName() + ".";
+                    }
+                } else {
+                    output = "That item isn't here.";
+                }
+            } else if (command.equals("inventory")) {
+                output = player.getInventoryString();
+            } else if (command.equals("restart")) {
+                IDatabase db = DatabaseProvider.getInstance();
+                db.resetGameData();
+                initGame();
+                output = "Game and database restarted.\n" +
+                         currentRoom.getLongDescription() + "\n" +
+                         currentRoom.getRoomItemsString();
+            } else if (currentRoom.getName().equals("Gas Station")
+                    && command.equalsIgnoreCase("enter gas station")) {
+                shopMode = true;
+                String welcome = "Welcome to Lou’s Gas & Goods!\nType 'help' for shop commands.\n";
+                // record the fact that the player entered the shop
+                transcript.append("> ").append(command).append("\n").append(welcome);
+                return welcome;
+            } else if (command.startsWith("equip ")) {
+            	String itemName = command.substring(6).trim();
+
+                // Try to get the item from the inventory
+                Items item = player.getItemByName(itemName);
+                
+
+                if (item == null) {
+                    output = "You don't have a " + itemName + " in your inventory.\n";
+                } else if (!item.getType().equals("weapon")) {  // This checks if the type is not "weapon"
+                    output = "You can't equip " + itemName + ". It's not a weapon.\n";
+                } else {
+                    Weapons weapon = (Weapons) item;  // Casting the item to a Weapons object
+                    player.equipWeapon(weapon);  // Equip the weapon
+                    output = "You equipped the " + weapon.getName() + ". Your attack is now " + player.getAttack() + ".\n";
+                }
+           } else if (command.startsWith("unequip")){
+        	   if (player.getEquippedWeapon() == null) {
+        	        output += "You have no weapon equipped.";
+        	        return output;
+        	    }
+
+        	    String name = player.getEquippedWeapon().getName();
+        	    player.unequipWeapon();
+        	    output+= "You unequipped the " + name + ". Your attack is now " + player.getAttack() + ".";
+           }
+        	   else {
                 output = "I don't understand that command.";
-            }
+            } 
         }
 
         transcript.append("> ").append(command).append("\n");

@@ -4,7 +4,7 @@ package edu.ycp.cs320.tbag.model;
  * Represents an item in the TBAG game.
  * Items have an id, name, description, weight, and value.
  */
-public class Item {
+public abstract class Items {
     private int id;
     private String name;
     private String description;
@@ -20,13 +20,16 @@ public class Item {
      * @param weight the weight of the item (in arbitrary units)
      * @param value the monetary or game value of the item
      */
-    public Item(int id, String name, String description, double weight, double value) {
+    public Items(int id, String name, String description, double weight, double value) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.weight = weight;
         this.value = value;
     }
+    
+    
+    public abstract String getType();
     
     // Getters and setters
     

@@ -8,7 +8,7 @@ import java.util.List;
  * It maintains a list of items and enforces a maximum weight capacity.
  */
 public class Inventory {
-    private List<Item> items;
+    private List<Items> items;
     private double maxWeight; // Maximum total weight allowed
 
     /**
@@ -35,7 +35,7 @@ public class Inventory {
      * @param item the item to check
      * @return true if the item can be added; false otherwise
      */
-    public boolean canAddItem(Item item) {
+    public boolean canAddItem(Items item) {
         return (getTotalWeight() + item.getWeight()) <= maxWeight;
     }
 
@@ -45,7 +45,7 @@ public class Inventory {
      * @param item the item to add
      * @return true if the item was added; false if it would exceed the max weight
      */
-    public boolean addItem(Item item) {
+    public boolean addItem(Items item) {
         if (canAddItem(item)) {
             items.add(item);
             return true;
@@ -59,19 +59,13 @@ public class Inventory {
      * @param item the item to remove
      * @return true if the item was removed; false if not found
      */
-    public boolean removeItem(Item item) {
+    public boolean removeItem(Items item) {
         return items.remove(item);
     }
 
-    /**
-     * Removes and returns the first item found with the given name (case-insensitive).
-     * If no such item is found, returns null.
-     *
-     * @param name the name of the item to remove
-     * @return the removed Item, or null if not found
-     */
-    public Item removeItemByName(String name) {
-        for (Item item : items) {
+
+    public Items removeItemByName(String name) {
+        for (Items item : items) {
             if (item.getName().equalsIgnoreCase(name)) {
                 items.remove(item);
                 return item;
@@ -79,6 +73,17 @@ public class Inventory {
         }
         return null;
     }
+    
+    public Items getItemByName(String name) {
+        for (Items item : items) {
+            if (item.getName().equalsIgnoreCase(name)) {
+                return item;
+            }
+        }
+        return null;
+    }
+    
+
 
     /**
      * Calculates the total weight of all items in the inventory.
@@ -87,7 +92,7 @@ public class Inventory {
      */
     public double getTotalWeight() {
         double total = 0.0;
-        for (Item item : items) {
+        for (Items item : items) {
             total += item.getWeight();
         }
         return total;
@@ -98,7 +103,7 @@ public class Inventory {
      *
      * @return an unmodifiable list of items
      */
-    public List<Item> getItems() {
+    public List<Items> getItems() {
         return items;
     }
 
@@ -139,7 +144,7 @@ public class Inventory {
           .append(" / ")
           .append(maxWeight)
           .append("):\n");
-        for (Item item : items) {
+        for (Items item : items) {
             sb.append("- ")
               .append(item.toString())
               .append("\n");

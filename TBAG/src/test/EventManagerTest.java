@@ -98,7 +98,7 @@ public class EventManagerTest {
 
     @Test
     public void testInventoryAddAndRemove() {
-        Item pen = new Item(1, "Pen", "Blue pen", 0.1, 1.0);
+        RegularItem pen = new RegularItem(1, "Pen", "Blue pen", 0.1, 1.0);
         assertTrue(player.getInventory().addItem(pen));
         assertTrue(player.getInventory().removeItem(pen));
     }
@@ -128,7 +128,7 @@ public class EventManagerTest {
 
     @Test
     public void testItemToString() {
-        Item item = new Item(1, "Key", "Shiny", 0.2, 5);
+        RegularItem item = new RegularItem(1, "Key", "Shiny", 0.2, 5);
         assertTrue(item.toString().contains("Key"));
     }
 }

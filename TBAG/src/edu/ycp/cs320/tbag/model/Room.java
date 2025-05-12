@@ -18,7 +18,7 @@ public class Room {
     private String name;
     private String longDescription;
     private Map<String, Room> connections;  // e.g., "north" -> another Room
-    private List<Item> items;              // Items present in this room
+    private List<Items> items;              // Items present in this room
     private List<NPC> npcs;
     private List<Event> events; 				// Adds event to each room
     private List<Enemy> enemy;
@@ -97,7 +97,7 @@ public class Room {
      *
      * @param item the item to add
      */
-    public void addItem(Item item) {
+    public void addItem(Items item) {
         items.add(item);
     }
     
@@ -107,7 +107,7 @@ public class Room {
      * @param item the item to remove
      * @return true if the item was removed; false otherwise
      */
-    public boolean removeItem(Item item) {
+    public boolean removeItem(Items item) {
         return items.remove(item);
     }
     
@@ -118,8 +118,8 @@ public class Room {
      * @param itemName the name of the item to remove
      * @return the removed Item or null if not found
      */
-    public Item removeItemByName(String itemName) {
-        for (Item item : items) {
+    public Items removeItemByName(String itemName) {
+        for (Items item : items) {
             if (item.getName().equalsIgnoreCase(itemName)) {
                 items.remove(item);
                 return item;
@@ -133,7 +133,7 @@ public class Room {
      *
      * @return a list of Items
      */
-    public List<Item> getItems() {
+    public List<Items> getItems() {
         return items;
     }
     
@@ -147,7 +147,7 @@ public class Room {
             return "No items are present in this room.";
         }
         StringBuilder sb = new StringBuilder("Items available: ");
-        for (Item item : items) {
+        for (Items item : items) {
             sb.append(item.getName()).append(", ");
         }
         // Remove trailing comma and space if present.

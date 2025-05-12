@@ -9,14 +9,14 @@ import edu.ycp.cs320.tbag.model.*;
 public class PlayerRoomInventoryTest {
     private Player player;
     private Room room;
-    private Item item;
+    private RegularItem item;
     private Inventory inventory;
 
     @BeforeEach
     public void setUp() {
         player = new Player();
         room = new Room(1, "Test Room", "A room for testing.");
-        item = new Item(1, "Test Item", "A useful test item", 1.0, 10.0);
+        item = new RegularItem(1, "Test Item", "A useful test item", 1.0, 10.0);
         inventory = new Inventory();
     }
 
@@ -56,7 +56,7 @@ public class PlayerRoomInventoryTest {
     @Test
     public void testInventoryOverMaxWeight() {
         Inventory tightInventory = new Inventory(1.0);
-        Item heavyItem = new Item(2, "Heavy", "Very heavy", 1.5, 10.0);
+        RegularItem heavyItem = new RegularItem(2, "Heavy", "Very heavy", 1.5, 10.0);
         assertFalse(tightInventory.addItem(heavyItem));
     }
 
@@ -68,7 +68,7 @@ public class PlayerRoomInventoryTest {
 
     @Test
     public void testInventoryTotalWeightCalculation() {
-        Item second = new Item(2, "Second", "Second item", 2.0, 5.0);
+        RegularItem second = new RegularItem(2, "Second", "Second item", 2.0, 5.0);
         inventory.addItem(item);
         inventory.addItem(second);
         assertEquals(3.0, inventory.getTotalWeight());
@@ -154,7 +154,7 @@ public class PlayerRoomInventoryTest {
 
     @Test
     public void testPlayerCannotPickUpHeavyItem() {
-        Item big = new Item(5, "Big Rock", "Too heavy", 999, 1);
+        RegularItem big = new RegularItem(5, "Big Rock", "Too heavy", 999, 1);
         assertFalse(player.pickUpItem(big));
     }
 }

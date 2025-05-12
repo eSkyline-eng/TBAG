@@ -3,10 +3,12 @@ package edu.ycp.cs320.tbag.db.persist;
 import java.util.List;
 import java.util.Map;
 
-import edu.ycp.cs320.tbag.model.Item;
+import edu.ycp.cs320.tbag.model.RegularItem;
 import edu.ycp.cs320.tbag.model.ItemLocation;
+import edu.ycp.cs320.tbag.model.Items;
 import edu.ycp.cs320.tbag.model.Player;
 import edu.ycp.cs320.tbag.model.Room;
+import edu.ycp.cs320.tbag.model.Weapons;
 import edu.ycp.cs320.tbag.model.NPC;
 import edu.ycp.cs320.tbag.model.NPCDialogue;
 import edu.ycp.cs320.tbag.ending.Achievement;
@@ -23,7 +25,7 @@ public interface IDatabase {
     
     List<ItemLocation> getItemsAtLocation(String locationType, int locationId);
     List<ItemLocation> loadAllItemLocations();
-    Map<Integer, Item> loadItemDefinitions();
+    Map<Integer, Items> loadItemDefinitions();
     Map<Integer, Room> loadRooms();
     void loadConnections(Map<Integer, Room> roomMap);
     
@@ -56,5 +58,4 @@ public interface IDatabase {
     void updatePlayerTime(int playerId, int newTime);
  
 	NPCDialogue getDialogueById(int dialogueId);
-    
 }
