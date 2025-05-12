@@ -4,10 +4,10 @@
 15|Degree|A college diploma bearing your name, pride, and a lot of debt.|0.2|0|normal|||
 16|HS Degree|Your high school diploma, laminated and slightly curled at the edges.|0.2|0|normal|||
 17|Old Bat|Dad's old bat he took to the big league's. You can feel the dad lore emanating from it|2.2|5.0|weapon|2.0||
-18|Crowbar|A heavy crowbar, useful for both leverage and self-defense.|2.5|15.0|weapon|2.2||
-19|Band-Aid|Covers your wounds to protect you from infection|0.1|2.0|consumable||8|True
-20|Hydrogen Peroxide|Kills bacteria but also feels like getting feels like getting stung by one million bee's|2|10|consumable||20|True
-21|Burger|Nothing says eat up more than a free dumpster burger|1|10|consumable||5|True
-22|Energy Drink|Your heart's screaming, your hands are shaking, but you feel like you can do backflips.|0.5|8|consumable||5|True
-23|Old Grenade|An old war grenade. The warning lable has been wiped by passage of time|1.7|8|consumable||-90|True
+18|Crowbar|A heavy crowbar, useful for both leverage and self-defense.|8|15.0|weapon|2.2||
+19|Band-Aid|Covers your wounds to protect you from infection|0.1|2.0|consumable||8|False
+20|Hydrogen Peroxide|Kills bacteria but also feels like getting feels like getting stung by one million bee's|2|10|consumable||20|False
+21|Burger|Nothing says eat up more than a free dumpster burger|1|10|consumable||5|False
+22|Energy Drink|Your heart's screaming, your hands are shaking, but you feel like you can do backflips.|0.5|8|consumable||5|False
+23|Old Grenade|An old war grenade. The warning lable has been wiped by passage of time|1.7|8|consumable||-90|False
 24|Pepper Spray|A can of spice that'll knock out most enemies. Use sparingly|0.2|15|consumable||-50|True

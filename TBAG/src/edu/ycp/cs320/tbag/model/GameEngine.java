@@ -172,37 +172,48 @@ public class GameEngine {
         }
     }
     
-    public String useItem(Player player, Items item) {
+    public String useItem(Player player, Items item, boolean inCombat, Enemy enemy) {
         StringBuilder result = new StringBuilder();
-        
-        if (item.getType().equals("consumable")) {
-        	Consumables consumableItem = (Consumables) item;
 
-            // Assuming the consumable item has a 'getEffect' method for healing or other effects
-            int healAmount = consumableItem.getEffect();  // You can replace this with any effect for the consumable
-            player.addHealth(healAmount);  // Heal the player
-            int actualHealed = player.addHealth(consumableItem.getEffect());
-            
-            if (actualHealed > 0) {
-                result.append("You used ").append(item.getName()).append(" and restored ")
-                      .append(actualHealed).append(" health.\n");
+        if (item.getType().equals("consumable")) {
+            // Cast safely to Consumables
+            Consumables consumableItem = (Consumables) item;
+
+            int effect = consumableItem.getEffect();
+            boolean targetsEnemy = consumableItem.isOneTimeUse(); 
+
+            if (targetsEnemy) {
+                if (!inCombat) {
+                    return "You can't use that here.";
+                }
+                enemy.takeDamage(effect);
+                result.append("You throw ").append(item.getName()).append(" at the enemy!\n");
                 player.getInventory().removeItem(consumableItem);
-            } else if (actualHealed==0) {
-                result.append("You used ").append(item.getName())
-                      .append(", but your health is already full...you kept the item\n");
-            } else if(actualHealed<0) {
-            	result.append("You pulled the ").append(item.getName()).append(" pin ")
-            	.append("but accidently dropped the grenade... you took ").append(actualHealed).append(" points of damage\n");
-            	player.getInventory().removeItem(consumableItem);
+            } else {
+                if (effect < 0) {
+                    int damageTaken = Math.min(player.getHealth(), -effect);
+                    player.takeDamage(damageTaken);
+                    result.append("You used pull the pin to the ").append(item.getName())
+                          .append(" but before you get the chance to toss it, it explodes. You take ").append(damageTaken).append(" damage.\n");
+                } else {
+                    int actualHealed = player.addHealth(effect);
+                    if (actualHealed > 0) {
+                        result.append("You used ").append(item.getName())
+                              .append(" and restored ").append(actualHealed).append(" health.\n");
+                    } else {
+                        result.append("You used ").append(item.getName())
+                              .append(", but your health is already full. You kept the item.\n");
+                        return result.toString();
+                    }
+                }
+                // Remove only if item is actually used
+                player.getInventory().removeItem(consumableItem);
             }
-            
-            
-            
         } else {
-            result.append("This consumable item does not have the expected properties.");
+            result.append("This item is not usable.");
         }
+
         return result.toString();
-        
     }
 
     
@@ -363,6 +374,7 @@ public class GameEngine {
         }
         
         if (inCombat) {
+        	
             if (command.startsWith("attack")) {
                 if (currentEnemy != null) {
                     int playerAttack = player.getAttack();
@@ -431,7 +443,7 @@ public class GameEngine {
                 if (itemToUse == null) {
                     output = "You don't have an item called '" + itemName + "'.";
                 } else {
-                    String effectResult = useItem(player, itemToUse);
+                    String effectResult = useItem(player, itemToUse, inCombat, currentEnemy);
                     output += effectResult;
                     output += "Health: " + player.getHealth();
 
@@ -739,7 +751,7 @@ public class GameEngine {
                if (itemToUse == null) {
                    output = "You don't have an item called '" + itemName + "'.";
                } else {
-                   String effectResult = useItem(player, itemToUse);
+                   String effectResult = useItem(player, itemToUse, inCombat, currentEnemy);
                    output += effectResult;
                    output += "Health: " + player.getHealth();
                }
