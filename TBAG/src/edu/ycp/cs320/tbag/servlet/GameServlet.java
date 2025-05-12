@@ -61,6 +61,13 @@ public class GameServlet extends HttpServlet {
                 return;
             }
             
+            if ("_PLAYER_DEAD_".equals(result)) {
+            	session.setAttribute("player", controller.getPlayer());
+            	session.setAttribute("endingDescription", controller.getGameEngine().getEndingDescription());
+            	req.getRequestDispatcher("/_view/ending.jsp");
+            	return;
+            }
+            
             if (LotteryEnding.ACCEPT_CODE.equals(result)) {
                 session = req.getSession();
                 session.setAttribute("player", controller.getPlayer());
