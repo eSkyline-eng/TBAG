@@ -402,6 +402,36 @@ public class GameEngine {
                 NPC npc = currentRoom.getNPCByName(npcName);
 
                 if (npc != null) {
+                	 player.reduceTime(50);
+                     if (player.outOfTime()) {
+                         player.unlockAchievement("Out of time", "You ran out of time");
+                     }
+                     
+                     IDatabase db = DatabaseProvider.getInstance();
+                     db.updatePlayerTime(player.getId(), player.getTime());
+                     
+                     for (EndingCondition ending : endings) {
+                         if (ending.isMet(player)) {
+                             if (!player.hasAchievement(ending.getClass().getSimpleName())) {
+                                 pendingEnding = ending;
+                                 pendingEndingPrompt = true;
+                                 if (player.outOfTime()) {
+                                     pendingEndingPrompt = false;
+                                     player.unlockAchievement(pendingEnding.getClass().getSimpleName(), pendingEnding.getEndingDescription());
+                                     this.endingDescription = pendingEnding.getEndingDescription();
+
+                                     transcript.append("> ").append(command).append("\n");
+                                     transcript.append(pendingEnding.getEndingDescription()).append("\n");
+                                     return "__ENDING_ACCEPTED__";
+                                 }
+                                 String prompt = "You have been offered a position!\n" + ending.getEndingDescription() + "\nDo you accept the job? (yes/no)";
+                                 transcript.append("> ").append(command).append("\n");
+                                 transcript.append(prompt).append("\n");
+                                 return prompt;
+                             }
+                         }
+                     }
+
                     if (!npc.hasAdvancedDialogue()) {
                         output = npc.talk();
                     } else {
@@ -435,6 +465,11 @@ public class GameEngine {
                     currentRoom = nextRoom;
                     player.setCurrentRoom(currentRoom);
                     player.reduceTime(100);
+                    
+                    if (player.outOfTime()) {
+                        player.unlockAchievement("Out of time", "You ran out of time");
+                    }
+
                     checkForEnemyEncounter(player, currentRoom);
                     
                     
@@ -458,6 +493,15 @@ public class GameEngine {
                             if (!player.hasAchievement(ending.getClass().getSimpleName())) {
                                 pendingEnding = ending;
                                 pendingEndingPrompt = true;
+                                if (player.outOfTime()) {
+                                    pendingEndingPrompt = false;
+                                    player.unlockAchievement(pendingEnding.getClass().getSimpleName(), pendingEnding.getEndingDescription());
+                                    this.endingDescription = pendingEnding.getEndingDescription();
+
+                                    transcript.append("> ").append(command).append("\n");
+                                    transcript.append(pendingEnding.getEndingDescription()).append("\n");
+                                    return "__ENDING_ACCEPTED__";
+                                }
                                 String prompt = "You have been offered a position!\n" + ending.getEndingDescription() + "\nDo you accept the job? (yes/no)";
                                 transcript.append("> ").append(command).append("\n");
                                 transcript.append(prompt).append("\n");
@@ -465,6 +509,7 @@ public class GameEngine {
                             }
                         }
                     }
+
                     
                     if (currentRoom.getName() == "Neighborhood") {
                     	player.unlockAchievement("Leave_house", "TESTING");
@@ -545,6 +590,7 @@ public class GameEngine {
                 ItemLocation found = null;
                 for (ItemLocation loc : roomItems) {
                     Items item = itemMap.get(loc.getItemId());
+
                     if (item != null && item.getName().equalsIgnoreCase(itemName)) {
                         found = loc;
                         break;
@@ -556,6 +602,34 @@ public class GameEngine {
                     if (player.pickUpItem(targetItem)) {
                         currentRoom.removeItem(targetItem);
                         db.transferItem(found.getInstanceId(), "room", currentRoom.getId(), "player", 1);
+                        player.reduceTime(50);
+                        if (player.outOfTime()) {
+                            player.unlockAchievement("Out of time", "You ran out of time");
+                        }
+                     
+                        db.updatePlayerTime(player.getId(), player.getTime());
+                        
+                        for (EndingCondition ending : endings) {
+                            if (ending.isMet(player)) {
+                                if (!player.hasAchievement(ending.getClass().getSimpleName())) {
+                                    pendingEnding = ending;
+                                    pendingEndingPrompt = true;
+                                    if (player.outOfTime()) {
+                                        pendingEndingPrompt = false;
+                                        player.unlockAchievement(pendingEnding.getClass().getSimpleName(), pendingEnding.getEndingDescription());
+                                        this.endingDescription = pendingEnding.getEndingDescription();
+
+                                        transcript.append("> ").append(command).append("\n");
+                                        transcript.append(pendingEnding.getEndingDescription()).append("\n");
+                                        return "__ENDING_ACCEPTED__";
+                                    }
+                                    String prompt = "You have been offered a position!\n" + ending.getEndingDescription() + "\nDo you accept the job? (yes/no)";
+                                    transcript.append("> ").append(command).append("\n");
+                                    transcript.append(prompt).append("\n");
+                                    return prompt;
+                                }
+                            }
+                        }
                         output = "You picked up the " + targetItem.getName() + ".";
                     } else {
                         currentRoom.addItem(targetItem); // This line seems unnecessary; you already removed it conditionally.
@@ -651,20 +725,42 @@ public class GameEngine {
         if (nextDialogueId == 0) { // Assuming 0 means no further dialogue
             return "The conversation has ended.";
         }else if (nextDialogueId == -1) {
-        	player.unlockAchievement("Wall Mart Ending", "Test");
-        	return "The conversation has ended.";
+        	 player.unlockAchievement("Wall Mart Ending", "You completed the Wall Mart interview");
+             String endingCheck = checkForEndingConditions();
+             return endingCheck.isEmpty() ? "The conversation has ended." : endingCheck;
+
         }else if (nextDialogueId == -2) {
-        	player.unlockAchievement("Mazon Driver Ending", "Test");
-        	return "The conversation has ended.";
+        	 player.unlockAchievement("Mazon Driver Ending", "You completed the Mazon driver interview");
+             String endingCheck = checkForEndingConditions();
+             return endingCheck.isEmpty() ? "The conversation has ended." : endingCheck;
+
         }else if (nextDialogueId == -3) {
-        	player.unlockAchievement("Mazon CEO Ending", "Test");
-        	return "The conversation has ended.";
+        	 player.unlockAchievement("Mazon CEO Ending", "You completed the Mazon CEO interview");
+             String endingCheck = checkForEndingConditions();
+             return endingCheck.isEmpty() ? "The conversation has ended." : endingCheck;
+
         }
 
         activeDialogueId = nextDialogueId;
         return startAdvancedDialogue(nextDialogueId);
     }
 
+    private String checkForEndingConditions() {
+        for (EndingCondition ending : endings) {
+            if (ending.isMet(player)) {
+                if (!player.hasAchievement(ending.getClass().getSimpleName())) {
+                    dialogueMode = false;
+                    pendingEnding = ending;
+                    pendingEndingPrompt = true;
+                    return "You have been offered a position!\n" + ending.getEndingDescription() + 
+                           "\nDo you accept the job? (yes/no)";
+                }
+            }
+        }
+        return ""; // No ending met
+    }
+
+    
 	public String getTranscript() {
         return transcript.toString();
     }

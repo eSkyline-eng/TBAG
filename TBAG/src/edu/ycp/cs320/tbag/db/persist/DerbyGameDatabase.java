@@ -99,7 +99,7 @@ public class DerbyGameDatabase implements IDatabase {
 			// --- Upgrade path: add time column if it doesn’t already exist ---
 			try {
 				conn.prepareStatement("ALTER TABLE player ADD COLUMN time INT").executeUpdate();
-				conn.prepareStatement("UPDATE player SET time = 500 WHERE time IS NULL").executeUpdate();
+				conn.prepareStatement("UPDATE player SET time = 1500 WHERE time IS NULL").executeUpdate();
 			} catch (SQLException e) {
 				String state = e.getSQLState();
 				if (!"X0Y32".equals(state) && !"42Y55".equals(state)) {
@@ -271,7 +271,7 @@ public class DerbyGameDatabase implements IDatabase {
 				// Only for a fresh DB: insert the starting player with ID = 1
 				conn.prepareStatement(
 						"INSERT INTO player (id, hp, current_room_id, time, money, attack, attack_multiplier) "
-								+ "VALUES (1, 100, 1, 500, 50, 10, 1.0)")
+								+ "VALUES (1, 100, 1, 1500, 50, 10, 1.0)")
 						.executeUpdate();
 			} catch (SQLException e) {
 				String state = e.getSQLState();
@@ -338,7 +338,7 @@ public class DerbyGameDatabase implements IDatabase {
 				insertStmt.setInt(1, 1);
 				insertStmt.setInt(2, hp);
 				insertStmt.setInt(3, roomId);
-				insertStmt.setInt(4, 500);
+				insertStmt.setInt(4, 1500);
 				insertStmt.setInt(5, 50); // starting money
 				insertStmt.setInt(6, 10); // base attack
 				insertStmt.setDouble(7, 1.0); // default multiplier

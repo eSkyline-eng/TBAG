@@ -5,7 +5,7 @@ import edu.ycp.cs320.tbag.model.Player;
 public class KickedOutEnding implements EndingCondition {
     @Override
     public boolean isMet(Player player) {
-        return player.outOfTime();
+    	return player.hasAchievement("Out of time");
     }
 
     @Override
