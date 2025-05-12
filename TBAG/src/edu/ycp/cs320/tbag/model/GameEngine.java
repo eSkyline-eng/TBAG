@@ -187,9 +187,13 @@ public class GameEngine {
                 result.append("You used ").append(item.getName()).append(" and restored ")
                       .append(actualHealed).append(" health.\n");
                 player.getInventory().removeItem(consumableItem);
-            } else {
+            } else if (actualHealed==0) {
                 result.append("You used ").append(item.getName())
                       .append(", but your health is already full...you kept the item\n");
+            } else if(actualHealed<0) {
+            	result.append("You pulled the ").append(item.getName()).append(" pin ")
+            	.append("but accidently dropped the grenade... you took ").append(actualHealed).append(" points of damage\n");
+            	player.getInventory().removeItem(consumableItem);
             }
             
             

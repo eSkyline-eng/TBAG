@@ -39,6 +39,18 @@ public class GameEngineTest {
         String result = engine.processCommand("help");
         assertTrue(result.contains("go") && result.contains("look"));
     }
+    
+    @Test
+    public void testUseBandAid() {
+        engine.processCommand("take band-aid");
+        engine.getPlayer().takeDamage(20); // Simulate damage
+        int beforeUse = engine.getPlayer().getHealth();
+
+        engine.processCommand("use band-aid");
+        int afterUse = engine.getPlayer().getHealth();
+
+        assertTrue(afterUse > beforeUse, "Using Band-Aid should restore some health.");
+    }
 
     
 
@@ -105,4 +117,20 @@ public class GameEngineTest {
         String transcript = engine.getTranscript();
         assertFalse(transcript.toLowerCase().contains("city street"));
     }
+    
+    @Test
+    public void testEquipWeapon() {
+        engine.processCommand("go west");
+        engine.processCommand("take old bat");
+        String result = engine.processCommand("equip old bat");
+        assertTrue(result.toLowerCase().contains("equipped"));
+    }
+    
+    @Test
+    public void testEnemyEncounter() {
+        engine.processCommand("go west"); 
+        String transcript = engine.getTranscript();
+        assertTrue(transcript.toLowerCase().contains("neighbor's dog") || transcript.toLowerCase().contains("encounter"));
+    }
+    
 }

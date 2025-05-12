@@ -18,3 +18,7 @@
 10|north|2
 1|west|11
 11|east|1
+7|east|12
+12|east|13
+13|west|12
+12|west|7
