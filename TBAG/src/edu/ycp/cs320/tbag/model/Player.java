@@ -40,6 +40,7 @@ public class Player extends Character {
         super();                          // Initialize inventory
         this.time = 100000;                  // Default time
         this.money = 50;                  // Starting money
+        this.gameOver=false;
         
     }
 
@@ -78,13 +79,17 @@ public class Player extends Character {
         if (this.health > 100) {
             this.health = 100;
         }
+        if (this.health < 0) {
+        	this.health = 0;
+        }
         return this.health - originalHealth; // Actual amount healed
     }
 
     public void takeDamage(int amount) {
         this.health -= amount;
-        if (this.health < 0) {
+        if (this.health <= 0) {
             this.health = 0;
+            this.gameOver = true;
         }
     }
 
@@ -280,5 +285,7 @@ public class Player extends Character {
             .findFirst()
             .orElse(null);
     }
+    
+    
     
 }

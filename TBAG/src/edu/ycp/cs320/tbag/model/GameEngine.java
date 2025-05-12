@@ -11,6 +11,7 @@ import edu.ycp.cs320.tbag.db.persist.DatabaseProvider;
 import edu.ycp.cs320.tbag.db.persist.IDatabase;
 import edu.ycp.cs320.tbag.model.ShopManager;
 import edu.ycp.cs320.tbag.model.ShopItem;
+import edu.ycp.cs320.tbag.ending.DeathEnding;
 import edu.ycp.cs320.tbag.ending.EndingCondition;
 import edu.ycp.cs320.tbag.ending.KickedOutEnding;
 import edu.ycp.cs320.tbag.ending.LotteryEnding;
@@ -402,6 +403,30 @@ public class GameEngine {
                         output += " Enemy Health: " + currentEnemy.getEnemyHealth();
                         if (player.getHealth() <= 0) {
                             output += "\nYou have been defeated!";
+                            inCombat = false;
+                            
+                            for (EndingCondition ending : endings) {
+                                if (ending.isMet(player)) {
+                                    if (!player.hasAchievement(ending.getClass().getSimpleName())) {
+                                        pendingEnding = ending;
+                                        pendingEndingPrompt = true;
+                                        if (player.isGameOver()) {
+                                            pendingEndingPrompt = false;
+                                            player.unlockAchievement(pendingEnding.getClass().getSimpleName(), pendingEnding.getEndingDescription());
+                                            this.endingDescription = pendingEnding.getEndingDescription();
+
+                                            transcript.append("> ").append(command).append("\n");
+                                            transcript.append(pendingEnding.getEndingDescription()).append("\n");
+                                            return "__ENDING_ACCEPTED__";
+                                        }
+                                        String prompt = "You've succumb to the cruel city" + ending.getEndingDescription() + 
+                                        		"\n Do you want to restart? (yes/no)";
+                                        transcript.append("> ").append(command).append("\n");
+                                        transcript.append(prompt).append("\n");
+                                        return prompt;
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -425,6 +450,32 @@ public class GameEngine {
                     output += " " + currentEnemy.talk();
                     output += " " + currentEnemy.getName() + " attacks you for " + enemyAttack + " damage.\n";
                     output += " Your Health: " + player.getHealth();
+                }
+                if (player.getHealth() <= 0) {
+                    output += "\nYou have been defeated!";
+                    inCombat = false;
+                    for (EndingCondition ending : endings) {
+                        if (ending.isMet(player)) {
+                            if (!player.hasAchievement(ending.getClass().getSimpleName())) {
+                                pendingEnding = ending;
+                                pendingEndingPrompt = true;
+                                if (player.isGameOver()) {
+                                    pendingEndingPrompt = false;
+                                    player.unlockAchievement(pendingEnding.getClass().getSimpleName(), pendingEnding.getEndingDescription());
+                                    this.endingDescription = pendingEnding.getEndingDescription();
+
+                                    transcript.append("> ").append(command).append("\n");
+                                    transcript.append(pendingEnding.getEndingDescription()).append("\n");
+                                    return "__ENDING_ACCEPTED__";
+                                }
+                                String prompt = "You've succumb to the cruel city" + ending.getEndingDescription() + 
+                                		"\n Do you want to restart? (yes/no)";
+                                transcript.append("> ").append(command).append("\n");
+                                transcript.append(prompt).append("\n");
+                                return prompt;
+                            }
+                        }
+                    }
                 }
             } else if (command.equals("help")) {
                 output =
@@ -454,6 +505,32 @@ public class GameEngine {
                         output += "\n" + currentEnemy.talk();
                         output += " " + currentEnemy.getName() + " attacks you for " + enemyAttack + " damage.\n";
                         output += " Your Health: " + player.getHealth();
+                    }
+                    if (player.getHealth() <= 0) {
+                        output += "\nYou have been defeated!";
+                        inCombat=false;
+                        for (EndingCondition ending : endings) {
+                            if (ending.isMet(player)) {
+                                if (!player.hasAchievement(ending.getClass().getSimpleName())) {
+                                    pendingEnding = ending;
+                                    pendingEndingPrompt = true;
+                                    if (player.isGameOver()) {
+                                        pendingEndingPrompt = false;
+                                        player.unlockAchievement(pendingEnding.getClass().getSimpleName(), pendingEnding.getEndingDescription());
+                                        this.endingDescription = pendingEnding.getEndingDescription();
+
+                                        transcript.append("> ").append(command).append("\n");
+                                        transcript.append(pendingEnding.getEndingDescription()).append("\n");
+                                        return "__ENDING_ACCEPTED__";
+                                    }
+                                    String prompt = "You've succumb to the cruel city" + ending.getEndingDescription() + 
+                                    		"\n Do you want to restart? (yes/no)";
+                                    transcript.append("> ").append(command).append("\n");
+                                    transcript.append(prompt).append("\n");
+                                    return prompt;
+                                }
+                            }
+                        }
                     }
                 }} else {
                 output = "You're in combat! You can only attack " + currentEnemy.getName() + ", run away, or check health.";
@@ -755,6 +832,32 @@ public class GameEngine {
                    output += effectResult;
                    output += "Health: " + player.getHealth();
                }
+               if (player.getHealth() <= 0) {
+                   output += "\n What did you think would happen";
+                   for (EndingCondition ending : endings) {
+                       if (ending.isMet(player)) {
+                           if (!player.hasAchievement(ending.getClass().getSimpleName())) {
+                               pendingEnding = ending;
+                               pendingEndingPrompt = true;
+                               if (player.isGameOver()) {
+                                   pendingEndingPrompt = false;
+                                   player.unlockAchievement(pendingEnding.getClass().getSimpleName(), pendingEnding.getEndingDescription());
+                                   this.endingDescription = pendingEnding.getEndingDescription();
+
+                                   transcript.append("> ").append(command).append("\n");
+                                   transcript.append(pendingEnding.getEndingDescription()).append("\n");
+                                   return "__ENDING_ACCEPTED__";
+                               }
+                               String prompt = "You've succumb to the cruel city" + ending.getEndingDescription() + 
+                               		"\n Do you want to restart? (yes/no)";
+                               transcript.append("> ").append(command).append("\n");
+                               transcript.append(prompt).append("\n");
+                               return prompt;
+                           }
+                       }
+                   }
+               }
+               
            }else {
                 output = "I don't understand that command.";
             } 
@@ -823,12 +926,18 @@ public class GameEngine {
     private String checkForEndingConditions() {
         for (EndingCondition ending : endings) {
             if (ending.isMet(player)) {
-                if (!player.hasAchievement(ending.getClass().getSimpleName())) {
+                if (!player.hasAchievement(ending.getClass().getSimpleName()) && !(player.isGameOver())) {
                     dialogueMode = false;
                     pendingEnding = ending;
                     pendingEndingPrompt = true;
                     return "You have been offered a position!\n" + ending.getEndingDescription() + 
                            "\nDo you accept the job? (yes/no)";
+                } else {
+                	dialogueMode = false;
+                    pendingEnding = ending;
+                    pendingEndingPrompt = true;
+                    return "You've succumbed to the cruel city" + ending.getEndingDescription() + 
+                    		"\n Do you want to restart? (yes/no)";
                 }
             }
         }
@@ -854,6 +963,7 @@ public class GameEngine {
         endings.add(new LotteryEnding());
         endings.add(new YCPEnding());
         endings.add(new RatKingEnding());
+        endings.add(new DeathEnding());
         return endings;
     }
     

@@ -9,5 +9,4 @@
 20|Hydrogen Peroxide|Kills bacteria but also feels like getting feels like getting stung by one million bee's|2|10|consumable||20|False
 21|Burger|Nothing says eat up more than a free dumpster burger|1|10|consumable||5|False
 22|Energy Drink|Your heart's screaming, your hands are shaking, but you feel like you can do backflips.|0.5|8|consumable||5|False
-23|Old Grenade|An old war grenade. The warning lable has been wiped by passage of time|1.7|8|consumable||-90|False
-24|Pepper Spray|A can of spice that'll knock out most enemies. Use sparingly|0.2|15|consumable||-50|True
+23|Old Grenade|An old war grenade. The warning lable has been wiped by passage of time|1.7|8|consumable||-1000|False
