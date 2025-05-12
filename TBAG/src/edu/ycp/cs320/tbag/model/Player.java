@@ -72,8 +72,13 @@ public class Player extends Character {
     public void setHealth(int health) {
         this.health = health;
     }
-    public void addHealth(int amount) {
+    public int addHealth(int amount) {
+    	int originalHealth = this.health;
         this.health += amount;
+        if (this.health > 100) {
+            this.health = 100;
+        }
+        return this.health - originalHealth; // Actual amount healed
     }
 
     public void takeDamage(int amount) {

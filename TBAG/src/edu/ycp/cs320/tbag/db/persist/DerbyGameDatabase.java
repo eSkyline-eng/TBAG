@@ -25,6 +25,7 @@ import edu.ycp.cs320.tbag.ending.Achievement;
 import edu.ycp.cs320.tbag.events.Damage;
 import edu.ycp.cs320.tbag.events.Dialogue;
 import edu.ycp.cs320.tbag.events.Event;
+import edu.ycp.cs320.tbag.model.Consumables;
 import edu.ycp.cs320.tbag.model.Enemy;
 import edu.ycp.cs320.tbag.model.Weapons;
 import edu.ycp.cs320.tbag.model.Items;
@@ -152,15 +153,27 @@ public class DerbyGameDatabase implements IDatabase {
 				}
 			}
 
+			
 			try {
 				conn.prepareStatement(
 						"CREATE TABLE item_definitions (" + "item_id INT PRIMARY KEY, " + "item_name VARCHAR(50), "
 								+ "description VARCHAR(1000), " + "weight DOUBLE, " + "value DOUBLE, " + "type VARCHAR(50), "
-								+ "damage DOUBLE, " + "effect INT" + ")" 
+								+ "damage DOUBLE, " + "effect INT, " + "isOneTimeUse BOOLEAN" + ")" 
 								).executeUpdate();
 			} catch (SQLException e) {
 				if (!"X0Y32".equals(e.getSQLState()))
 					throw e;
+			}
+			
+			try {
+				conn.prepareStatement(
+					"ALTER TABLE ITEM_DEFINITIONS ADD COLUMN one_time_use BOOLEAN DEFAULT FALSE"
+				).executeUpdate();
+			} catch (SQLException e) {
+				// X0Y32 covers "column already exists" in Derby
+				if (!"X0Y32".equals(e.getSQLState())) {
+					throw new PersistenceException("Transaction failed", e);
+				}
 			}
 
 			try {
@@ -584,7 +597,7 @@ public class DerbyGameDatabase implements IDatabase {
 			conn.prepareStatement("DELETE FROM item_definitions").executeUpdate(); // optional cleanup
 
 			PreparedStatement stmt = conn.prepareStatement(
-			        "INSERT INTO item_definitions (item_id, item_name, description, weight, value, type, damage, effect) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+			        "INSERT INTO item_definitions (item_id, item_name, description, weight, value, type, damage, effect, isOneTimeUse) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
 
 					for (String[] row : records) {
@@ -596,6 +609,7 @@ public class DerbyGameDatabase implements IDatabase {
 			            String type = row[5].trim();
 			            Double damage = type.equalsIgnoreCase("weapon") ? Double.parseDouble(row[6].trim()) : null; // Only weapons have damage
 			            Integer consumable = type.equalsIgnoreCase("consumable") ? Integer.parseInt(row[7].trim()) : null; //Only for consumables
+			            Boolean isOneTimeUse = type.equalsIgnoreCase("consumable") ? Boolean.parseBoolean(row[8].trim()) : null;
 			            
 			         // Insert common item details
 			            stmt.setInt(1, id);
@@ -614,9 +628,13 @@ public class DerbyGameDatabase implements IDatabase {
 
 			            if (consumable != null) {
 			            	stmt.setInt(8, consumable);
+			            	stmt.setBoolean(9, isOneTimeUse);
 			            } else {
 			            	stmt.setNull(8, Types.INTEGER);
+			            	stmt.setNull(9, Types.BOOLEAN);
 			            }
+			            
+			            
 
 			            stmt.addBatch();
 					}
@@ -1078,6 +1096,7 @@ public class DerbyGameDatabase implements IDatabase {
 				String type = rs.getString("type");
 				double damage = rs.getDouble("damage");
 				int effect = rs.getInt("effect");
+				boolean oneTimeUse = rs.getBoolean("one_time_use");
 
 				Items item;
 
@@ -1089,6 +1108,9 @@ public class DerbyGameDatabase implements IDatabase {
 						item = new RegularItem(id, name, description, weight, value);
 						break;
 					// Optionally add "consumable" later when implemented
+					case "consumable":
+						item = new Consumables(id, name, description, weight, value, effect, oneTimeUse);
+						break;
 					default:
 						System.err.println("Unknown item type for ID " + id + ": " + type);
 						continue;

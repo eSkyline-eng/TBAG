@@ -171,6 +171,35 @@ public class GameEngine {
             }
         }
     }
+    
+    public String useItem(Player player, Items item) {
+        StringBuilder result = new StringBuilder();
+        
+        if (item.getType().equals("consumable")) {
+        	Consumables consumableItem = (Consumables) item;
+
+            // Assuming the consumable item has a 'getEffect' method for healing or other effects
+            int healAmount = consumableItem.getEffect();  // You can replace this with any effect for the consumable
+            player.addHealth(healAmount);  // Heal the player
+            int actualHealed = player.addHealth(consumableItem.getEffect());
+            
+            if (actualHealed > 0) {
+                result.append("You used ").append(item.getName()).append(" and restored ")
+                      .append(actualHealed).append(" health.\n");
+                player.getInventory().removeItem(consumableItem);
+            } else {
+                result.append("You used ").append(item.getName())
+                      .append(", but your health is already full...you kept the item\n");
+            }
+            
+            
+            
+        } else {
+            result.append("This consumable item does not have the expected properties.");
+        }
+        return result.toString();
+        
+    }
 
     
     public String processCommand(String command) {
@@ -387,10 +416,30 @@ public class GameEngine {
                     "- attack : Strike your foe.\n" +
                     "- run    : Attempt to flee battle.\n" +
                     "- health : Check your current health.\n" +
+                    "- use	  : use an item in battle from your inventory" +
                     "- help   : Show this help message.";
             } else if (command.equals("health")) {
                 output = "Health: " + player.getHealth();
-            } else {
+            } else if (command.startsWith("use ")) {
+                String itemName = command.substring(4).trim();
+                Items itemToUse = player.getInventory().getItemByName(itemName);
+
+                if (itemToUse == null) {
+                    output = "You don't have an item called '" + itemName + "'.";
+                } else {
+                    String effectResult = useItem(player, itemToUse);
+                    output += effectResult;
+                    output += "Health: " + player.getHealth();
+
+                    // Optional: Enemy attacks after item use
+                    if (currentEnemy != null && player.getHealth() > 0) {
+                        int enemyAttack = currentEnemy.getEnemyAttack();
+                        player.takeDamage(enemyAttack);
+                        output += "\n" + currentEnemy.talk();
+                        output += " " + currentEnemy.getName() + " attacks you for " + enemyAttack + " damage.\n";
+                        output += " Your Health: " + player.getHealth();
+                    }
+                }} else {
                 output = "You're in combat! You can only attack " + currentEnemy.getName() + ", run away, or check health.";
             }
         
@@ -679,11 +728,21 @@ public class GameEngine {
         	    String name = player.getEquippedWeapon().getName();
         	    player.unequipWeapon();
         	    output+= "You unequipped the " + name + ". Your attack is now " + player.getAttack() + ".";
-           }
-        	   else {
+           } else if (command.startsWith("use ")) {
+               String itemName = command.substring(4).trim();
+               Items itemToUse = player.getInventory().getItemByName(itemName);
+
+               if (itemToUse == null) {
+                   output = "You don't have an item called '" + itemName + "'.";
+               } else {
+                   String effectResult = useItem(player, itemToUse);
+                   output += effectResult;
+                   output += "Health: " + player.getHealth();
+               }
+           }else {
                 output = "I don't understand that command.";
             } 
-        }
+        } 
 
         transcript.append("> ").append(command).append("\n");
         transcript.append(output).append("\n");
