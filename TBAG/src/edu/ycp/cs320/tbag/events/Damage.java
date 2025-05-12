@@ -17,5 +17,9 @@ public class Damage extends Event {
         player.setHealth((player.getHealth()-damage));
         return dialogue;
     }
+    
+    public int getDamage() {
+    	return damage;
+    }
 }
 

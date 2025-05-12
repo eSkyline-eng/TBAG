@@ -9,57 +9,49 @@ import edu.ycp.cs320.tbag.model.Player;
 
 public class EnemyTest {
     private Enemy enemy;
+    private Player player;
 
     @Before
     public void setUp() {
-        enemy = new Enemy(1, "Rat", 7, 10, 2, 0.10, 0.75,
-            "The rat attempts a mighty attack... it does almost nothing.",
-            "The rat lunges with surprising speed, its tiny teeth sinking into your boot. You barely feel it.",
-            "The rat lets out a pathetic squeak.");
+        enemy = new Enemy(1, "Goblin", 2, 100, 15, 0.75, 0.25, "Snarl!", "Growl!", "Charge!");
+        player = new Player();
+        player.setHealth(100);
     }
-    
-    @Test
-    public void testInitialization() {
-        assertEquals(1, enemy.getEnemyID());
-        assertEquals("Rat", enemy.getEnemyName());
-        assertEquals(10, enemy.getEnemyHealth());
-        assertEquals(2, enemy.getEnemyAttack());
-        assertEquals(0.10, enemy.getEncounter(), 0.001);
-        assertEquals(0.75, enemy.getRunAway(), 0.001);
-    }
-    
-    @Test
-    public void testTakeDamage() {
-        enemy.takeDamage(3);
-        assertEquals(7, enemy.getEnemyHealth());
-    }
-    
-    @Test
-    public void testTakeLethalDamage() {
-        enemy.takeDamage(15);
-        assertEquals(0, enemy.getEnemyHealth());
-    }
-    
-    @Test
-    public void testAttackPlayer() {
-        Player mockPlayer = new Player();
-        mockPlayer.setHealth(20);
 
-        enemy.attack(mockPlayer);
-        assertEquals(18, mockPlayer.getHealth());
-    }
-    
     @Test
-    public void testSetters() {
-        enemy.setEnemyHealth(5);
-        enemy.setEnemyAttack(10);
-        enemy.setEncounter(0.6);
-        enemy.setRunAway(0.2);
-
-        assertEquals(5, enemy.getEnemyHealth());
-        assertEquals(10, enemy.getEnemyAttack());
-        assertEquals(0.6, enemy.getEncounter(), 0.001);
-        assertEquals(0.2, enemy.getRunAway(), 0.001);
+    public void testEnemyInitialization() {
+        assertEquals("Enemy ID should be set correctly", 1, enemy.getEnemyID());
+        assertEquals("Enemy name should be set correctly", "Goblin", enemy.getEnemyName());
+        assertEquals("Enemy health should be initialized correctly", 100, enemy.getEnemyHealth());
+        assertEquals("Enemy attack should be set correctly", 15, enemy.getEnemyAttack());
+        assertEquals("Encounter chance should be set correctly", 0.75, enemy.getEncounter(), 0.001);
+        assertEquals("RunAway chance should be set correctly", 0.25, enemy.getRunAway(), 0.001);
     }
-    
+
+    @Test
+    public void testEnemyHealthModification() {
+        enemy.setEnemyHealth(50);
+        assertEquals("Health should update correctly", 50, enemy.getEnemyHealth());
+    }
+
+    @Test
+    public void testEnemyAttackModification() {
+        enemy.setEnemyAttack(20);
+        assertEquals("Attack should update correctly", 20, enemy.getEnemyAttack());
+    }
+
+    @Test
+    public void testEnemyTakeDamage() {
+        enemy.takeDamage(30);
+        assertEquals("Enemy health should decrease after taking damage", 70, enemy.getEnemyHealth());
+
+        enemy.takeDamage(100); // Excess damage shouldn't make health negative
+        assertEquals("Enemy health should never drop below zero", 0, enemy.getEnemyHealth());
+    }
+
+    @Test
+    public void testEnemyAttackPlayer() {
+        enemy.attack(player);
+        assertEquals("Player should lose health equal to enemy attack", 85, player.getHealth());
+    }
 }

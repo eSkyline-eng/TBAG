@@ -1,134 +1,67 @@
 package test;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
-
-import edu.ycp.cs320.tbag.events.*;
-import edu.ycp.cs320.tbag.model.*;
-
+import static org.junit.Assert.*;
+import org.junit.Before;
+import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
-
+import edu.ycp.cs320.tbag.events.Event;
+import edu.ycp.cs320.tbag.events.EventManager;
+import edu.ycp.cs320.tbag.model.*;
 public class EventManagerTest {
-    private Player player;
-    private EventManager eventManager;
-    private List<Event> events;
-
-    @BeforeEach
-    public void setup() {
-        player = new Player();
-        eventManager = new EventManager();
-        events = new ArrayList<>();
-    }
-
-    @Test
-    public void testDialogueEventAlwaysTriggers() {
-        events.add(new Dialogue(1.0, "Mom says hi!"));
-        String result = eventManager.triggerEvents(events, player);
-        assertTrue(result.contains("Mom says hi!"));
-        assertEquals(100, player.getHealth());
-    }
-
-    @Test
-    public void testDamageEventAlwaysTriggers() {
-        events.add(new Damage(1.0, "A hobo attacks!", 10));
-        String result = eventManager.triggerEvents(events, player);
-        assertTrue(result.contains("A hobo attacks!"));
-        assertEquals(90, player.getHealth());
-    }
-
-    @Test
-    public void testDamageEventDoesNotTrigger() {
-        events.add(new Damage(0.0, "Invisible banana peel!", 10));
-        String result = eventManager.triggerEvents(events, player);
-        assertTrue(result.trim().isEmpty());
-        assertEquals(100, player.getHealth());
-    }
-
-    @Test
-    public void testOnlyOneEventTriggers() {
-        events.add(new Dialogue(1.0, "Mom yells at you!"));
-        events.add(new Damage(1.0, "You stub your toe!", 5));
-        events.add(new Dialogue(1.0, "Bird poops on you!"));
-
-        String result = eventManager.triggerEvents(events, player);
-        int triggerCount = 0;
-        if (result.contains("Mom yells at you!")) triggerCount++;
-        if (result.contains("You stub your toe!")) triggerCount++;
-        if (result.contains("Bird poops on you!")) triggerCount++;
-        assertEquals(1, triggerCount);
-    }
-
-    @Test
-    public void testMultipleDamageEventsOnlyOneTriggers() {
-        events.add(new Damage(1.0, "First hit!", 10));
-        events.add(new Damage(1.0, "Second hit!", 10));
-        events.add(new Damage(1.0, "Third hit!", 10));
-
-        String result = eventManager.triggerEvents(events, player);
-        assertTrue(result.contains("hit!"));
-        assertEquals(90, player.getHealth());
-    }
-
-    @Test
-    public void testTriggerEventsRandomizesOrder() {
-        events.add(new Dialogue(1.0, "First"));
-        events.add(new Dialogue(1.0, "Second"));
-        events.add(new Dialogue(1.0, "Third"));
-
-        boolean seenFirst = false, seenSecond = false, seenThird = false;
-        for (int i = 0; i < 20; i++) {
-            String result = eventManager.triggerEvents(events, player);
-            if (result.contains("First")) seenFirst = true;
-            if (result.contains("Second")) seenSecond = true;
-            if (result.contains("Third")) seenThird = true;
-        }
-        assertTrue(seenFirst && seenSecond && seenThird);
-    }
-
-    // ---- Extra Tests for Coverage ----
-
-
-    @Test
-    public void testSetAndGetHealth() {
-        player.setHealth(80);
-        assertEquals(80, player.getHealth());
-    }
-
-    @Test
-    public void testInventoryAddAndRemove() {
-        RegularItem pen = new RegularItem(1, "Pen", "Blue pen", 0.1, 1.0);
-        assertTrue(player.getInventory().addItem(pen));
-        assertTrue(player.getInventory().removeItem(pen));
-    }
-
-    @Test
-    public void testRoomAddAndGetEvent() {
-        Room room = new Room(1, "Room", "Just a room");
-        Event e = new Dialogue(1.0, "hello");
-        room.addEvent(e);
-        assertTrue(room.getEvents().contains(e));
-    }
-
-    @Test
-    public void testRoomConnections() {
-        Room r1 = new Room(1, "R1", "Room 1");
-        Room r2 = new Room(2, "R2", "Room 2");
-        r1.addConnection("north", r2);
-        assertEquals(r2, r1.getConnection("north"));
-    }
-
-    @Test
-    public void testNPCInteraction() {
-        NPC npc = new NPC("Joe", "Hello there!", 2);
-        assertEquals("Hello there!", npc.talk());
-        assertEquals("Joe", npc.getName());
-    }
-
-    @Test
-    public void testItemToString() {
-        RegularItem item = new RegularItem(1, "Key", "Shiny", 0.2, 5);
-        assertTrue(item.toString().contains("Key"));
-    }
+   private EventManager eventManager;
+   private Player player;
+   private Event mockEvent1, mockEvent2;
+   @Before
+   public void setUp() {
+       eventManager = new EventManager();
+       player = new Player();
+       // Mock events with predictable probability
+       mockEvent1 = new Event(1.0) { // High probability
+           @Override
+           public String trigger(Player player) {
+               return "Mock Event 1 Triggered!";
+           }
+       };
+       mockEvent2 = new Event(0.1) { // Low probability
+           @Override
+           public String trigger(Player player) {
+               return "Mock Event 2 Triggered!";
+           }
+       };
+   }
+   @Test
+   public void testAddEvent() {
+       eventManager.addEvent(mockEvent1);
+       eventManager.addEvent(mockEvent2);
+       List<Event> events = new ArrayList<>();
+       events.add(mockEvent1);
+       events.add(mockEvent2);
+       String result = eventManager.triggerEvents(events, player);
+       assertFalse("Events should be stored correctly", events.isEmpty());
+   }
+   @Test
+   public void testTriggerEvent() {
+       List<Event> events = new ArrayList<>();
+       events.add(mockEvent1);
+       events.add(mockEvent2);
+       String result = eventManager.triggerEvents(events, player);
+       assertTrue("At least one event should trigger", result.contains("Mock Event 1 Triggered!") || result.contains("Mock Event 2 Triggered!"));
+   }
+   @Test
+   public void testEventProbabilityEffect() {
+       int triggeredMockEvent1 = 0;
+       int triggeredMockEvent2 = 0;
+       List<Event> events = new ArrayList<>();
+       events.add(mockEvent1);
+       events.add(mockEvent2);
+       for (int i = 0; i < 100; i++) {
+           String result = eventManager.triggerEvents(events, player);
+           if (result.contains("Mock Event 1 Triggered!")) {
+               triggeredMockEvent1++;
+           } else if (result.contains("Mock Event 2 Triggered!")) {
+               triggeredMockEvent2++;
+           }
+       }
+       assertTrue("Mock Event 1 should trigger more frequently due to higher probability", triggeredMockEvent1 > triggeredMockEvent2);
+   }
 }

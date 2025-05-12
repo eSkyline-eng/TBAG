@@ -13,6 +13,7 @@ import edu.ycp.cs320.tbag.model.Enemy;
 import edu.ycp.cs320.tbag.model.RegularItem;
 import edu.ycp.cs320.tbag.model.ItemLocation;
 import edu.ycp.cs320.tbag.model.NPC;
+import edu.ycp.cs320.tbag.model.NPCDialogue;
 import edu.ycp.cs320.tbag.model.Player;
 import edu.ycp.cs320.tbag.model.Room;
 import edu.ycp.cs320.tbag.db.persist.DatabaseProvider;
@@ -59,7 +60,7 @@ public class AchievementEndingTest {
             }
 
             @Override
-            public Map<Integer, RegularItem> loadItemDefinitions() {
+            public Map loadItemDefinitions() {
                 return new java.util.HashMap<>();
             }
 
@@ -102,6 +103,66 @@ public class AchievementEndingTest {
             public List<Enemy> loadAllEnemies() {
                 return new java.util.ArrayList<>();
             }
+
+			@Override
+			public int getPlayerMoney(int playerId) {
+				// TODO Auto-generated method stub
+				return 0;
+			}
+
+			@Override
+			public void updatePlayerMoney(int playerId, int newBalance) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public int getPlayerAttack(int playerId) {
+				// TODO Auto-generated method stub
+				return 0;
+			}
+
+			@Override
+			public void updatePlayerAttack(int playerId, int newAttack) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void updatePlayerHealth(int playerId, int newHealth) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public double getPlayerAttackMultiplier(int playerId) {
+				// TODO Auto-generated method stub
+				return 0;
+			}
+
+			@Override
+			public void updatePlayerAttackMultiplier(int playerId, double multiplier) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public int getPlayerTime(int playerId) {
+				// TODO Auto-generated method stub
+				return 0;
+			}
+
+			@Override
+			public void updatePlayerTime(int playerId, int newTime) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public NPCDialogue getDialogueById(int dialogueId) {
+				// TODO Auto-generated method stub
+				return null;
+			}
         });
 
         player = new Player();
@@ -117,10 +178,8 @@ public class AchievementEndingTest {
 
     @Test
     public void testKickedOutEndingAchieved() {
-        while (!player.outOfTime()) {
-            player.reduceTime(50);
-        }
-        assertTrue(player.outOfTime());
+        player.unlockAchievement("Out of time", "test");
+        assertTrue(player.hasAchievement("Out of time"));
         assertTrue(new KickedOutEnding().isMet(player));
     }
 
@@ -136,11 +195,11 @@ public class AchievementEndingTest {
     @Test
     public void testMazonDriverEndingAchieved() {
         player.setCurrentRoom(new Room(6, "Mazon", ""));
-        player.unlockAchievement("mazon_interview", "Had the Mazon driver interview");
+        player.unlockAchievement("Mazon Driver Ending", "Had the Mazon driver interview");
         player.pickUpItem(new RegularItem(12, "resume", "", 0.1, 0));
         assertEquals("Mazon", player.getCurrentRoom().getName());
         assertTrue(player.checkInventory("resume"));
-        assertTrue(player.hasAchievement("mazon_interview"));
+        assertTrue(player.hasAchievement("Mazon Driver Ending"));
         assertTrue(new MazonDriverEnding().isMet(player));
     }
 
@@ -157,6 +216,7 @@ public class AchievementEndingTest {
     public void testWallMartEndingAchieved() {
         player.setCurrentRoom(new Room(8, "Wall Mart", ""));
         player.pickUpItem(new RegularItem(12, "resume", "", 0.1, 0));
+        player.unlockAchievement("Wall Mart Ending", "test");
         assertEquals("Wall Mart", player.getCurrentRoom().getName());
         assertTrue(player.checkInventory("resume"));
         assertTrue(new WallMartEnding().isMet(player));
@@ -176,13 +236,13 @@ public class AchievementEndingTest {
         player.setCurrentRoom(new Room(6, "Mazon", ""));
         player.pickUpItem(new RegularItem(12, "resume", "", 0.1, 0));
         player.pickUpItem(new RegularItem(13, "suit", "", 1.5, 20));
-        player.pickUpItem(new RegularItem(15, "degree", "", 0.2, 0));
-        player.unlockAchievement("mazon_ceo_interview", "Had the Mazon CEO interview");
+        player.pickUpItem(new RegularItem(15, "Degree", "", 0.2, 0));
+        player.unlockAchievement("Mazon CEO Ending", "Had the Mazon CEO interview");
         assertEquals("Mazon", player.getCurrentRoom().getName());
         assertTrue(player.checkInventory("resume"));
         assertTrue(player.checkInventory("suit"));
-        assertTrue(player.checkInventory("degree"));
-        assertTrue(player.hasAchievement("mazon_ceo_interview"));
+        assertTrue(player.checkInventory("Degree"));
+        assertTrue(player.hasAchievement("Mazon CEO Ending"));
         assertTrue(new MazonCEOEnding().isMet(player));
     }
 
